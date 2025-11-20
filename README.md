@@ -5,7 +5,7 @@
 |Max de Jong|6340628|
 |Mart Veldkamp|5885175|
 |Jip Rasenberg|6336957|
-|Mart 2|...|
+|Mart Wevers|6087221|
 
 ## Usefull websites
 Gitrepo for the simulations: https://github.com/maxspahn/gym_envs_urdf
