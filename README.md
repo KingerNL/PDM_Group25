@@ -1,4 +1,4 @@
-# PDM_Group25
+# PDM_Group25 - MPC Implementation
 
 |Name|Studentnumber|
 |---|---|
