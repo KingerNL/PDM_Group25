@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from typing import Tuple
-from pathtracking_kbm_obav import Vehicle
 
 class MPPIControllerForPathTracking():
     def __init__(
@@ -321,80 +320,3 @@ class MPPIControllerForPathTracking():
         return xx_mean
 
 
-def run_simulation_mppi_pathtracking() -> None:
-    """run simulation of pathtracking with MPPI controller"""
-    print("[INFO] Start simulation of pathtracking with MPPI controller")
-
-    # simulation settings
-    delta_t = 0.05 # [sec]
-    sim_steps = 150 # [steps]
-    print(f"[INFO] delta_t : {delta_t:.2f}[s] , sim_steps : {sim_steps}[steps], total_sim_time : {delta_t*sim_steps:.2f}[s]")
-
-    # obstacle params
-    OBSTACLE_CIRCLES = np.array([
-        [+ 8.0, +5.0, 4.0], # pos_x, pos_y, radius [m] in the global frame
-        [+18.0, -5.0, 4.0], # pos_x, pos_y, radius [m] in the global frame
-    ])
-
-    # load and visualize reference path
-    ref_path = np.genfromtxt('./data/ovalpath.csv', delimiter=',', skip_header=1)
-
-    # initialize a vehicle as a control target
-    vehicle = Vehicle(
-        wheel_base=2.5,
-        max_steer_abs=0.523, # [rad]
-        max_accel_abs=2.000, # [m/s^2]
-        ref_path = ref_path[:, 0:2], # ndarray, size is <num_of_waypoints x 2>
-        obstacle_circles = OBSTACLE_CIRCLES, # [obs_x, obs_y, obs_radius]
-    )
-    vehicle.reset(
-        init_state = np.array([0.0, 0.0, 0.0, 0.0]), # [x[m], y[m], yaw[rad], v[m/s]]
-    )
-
-    # initialize a mppi controller for the vehicle
-    mppi = MPPIControllerForPathTracking(
-        delta_t = delta_t*2.0, # [s]
-        wheel_base = 2.5, # [m]
-        max_steer_abs = 0.523, # [rad]
-        max_accel_abs = 2.000, # [m/s^2]
-        ref_path = ref_path, # ndarray, size is <num_of_waypoints x 2>
-        horizon_step_T = 20, # [steps]
-        number_of_samples_K = 500, # [samples]
-        param_exploration = 0.05,
-        param_lambda = 100.0,
-        param_alpha = 0.98,
-        sigma = np.array([[0.075, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([50.0, 50.0, 1.0, 20.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([50.0, 50.0, 1.0, 20.0]), # weight for [x, y, yaw, v]
-        visualze_sampled_trajs = True, # if True, sampled trajectories are visualized
-        obstacle_circles = OBSTACLE_CIRCLES, # [obs_x, obs_y, obs_radius]
-        collision_safety_margin_rate = 1.2, # safety margin for collision check
-    )
-
-    # simulation loop
-    for i in range(sim_steps):
-
-        # get current state of vehicle
-        current_state = vehicle.get_state()
-
-        try:
-            # calculate input force with MPPI
-            optimal_input, optimal_input_sequence, optimal_traj, sampled_traj_list = mppi.calc_control_input(
-                observed_x = current_state
-            )
-        except IndexError as e:
-            # the vehicle has reached the end of the reference path
-            print("[ERROR] IndexError detected. Terminate simulation.")
-            break
-
-        # print current state and input force
-        print(f"Time: {i*delta_t:>2.2f}[s], x={current_state[0]:>+3.3f}[m], y={current_state[1]:>+3.3f}[m], yaw={current_state[2]:>+3.3f}[rad], v={current_state[3]:>+3.3f}[m/s], steer={optimal_input[0]:>+6.2f}[rad], accel={optimal_input[1]:>+6.2f}[m/s]")
-
-        # update states of vehicle
-        vehicle.update(u=optimal_input, delta_t=delta_t, optimal_traj=optimal_traj[:, 0:2], sampled_traj_list=sampled_traj_list[:, :, 0:2])
-
-    # save animation
-    vehicle.save_animation("mppi_pathtracking_obav_demo.mp4", interval=int(delta_t * 1000), movie_writer="ffmpeg") # ffmpeg is required to write mp4 file
-
-if __name__ == "__main__":
-    run_simulation_mppi_pathtracking()
