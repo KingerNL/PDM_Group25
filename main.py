@@ -4,6 +4,12 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from MPPI import MPPIControllerForPathTracking
 
+wheel_radius = 0.31265
+wheel_base = 0.494
+max_steer_abs = 0.6
+max_accel_abs = 8.0
+samples_per_dt = 50
+
 
 def run_prius_main(n_steps=10000, dt=0.01):
 
@@ -12,8 +18,8 @@ def run_prius_main(n_steps=10000, dt=0.01):
             urdf='prius.urdf',
             mode="vel",
             scaling=0.3,
-            wheel_radius=0.31265,
-            wheel_distance=0.494,
+            wheel_radius=wheel_radius,
+            wheel_distance=wheel_base,
             actuated_wheels=[
                 'front_right_wheel_joint', 'front_left_wheel_joint',
                 'rear_right_wheel_joint', 'rear_left_wheel_joint'
@@ -26,8 +32,14 @@ def run_prius_main(n_steps=10000, dt=0.01):
     ]
 
     env = UrdfEnv(dt=dt, robots=robots, render=True)
-    ob = env.reset()
+    ob, _ = env.reset()
     print("Initial observation:", ob)
+    print("TYPE of ob:", type(ob))
+    print("LENGTH of ob:", len(ob))
+
+    for i, item in enumerate(ob):
+        print(f"\nob[{i}] TYPE:", type(item))
+        print(f"ob[{i}]:", item)
     
 
 
@@ -35,6 +47,8 @@ def run_prius_main(n_steps=10000, dt=0.01):
     # load and visualize reference path
     ref_path = np.genfromtxt('Data/ovalpath.csv', delimiter=',', skip_header=1)
 
+    #variables
+    state = np.zeros(2)
 
     ### CSV to np.array!!!!!!!!!!!!!!!
     OBSTACLE_CIRCLES = np.array([
@@ -43,15 +57,14 @@ def run_prius_main(n_steps=10000, dt=0.01):
     ])
 
 
-
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
-        wheel_base = 2.5, # [m]
-        max_steer_abs = 0.523, # [rad]
-        max_accel_abs = 2.000, # [m/s^2]
+        wheel_base = wheel_base, # [m]
+        max_steer_abs = max_steer_abs, # [rad]
+        max_accel_abs = max_accel_abs, # [m/s^2]
         ref_path = ref_path, # ndarray, size is <num_of_waypoints x 2>
         horizon_step_T = 20, # [steps]
-        number_of_samples_K = 500, # [samples]
+        number_of_samples_K = samples_per_dt, # [samples]
         param_exploration = 0.05,
         param_lambda = 100.0,
         param_alpha = 0.98,
@@ -65,18 +78,16 @@ def run_prius_main(n_steps=10000, dt=0.01):
 
 ###-------------------------------------------main simulation loop---------------------------------------------------###
     for _ in range(n_steps):
-        robot_dict = ob[0]
+        
+        
 
-        # unpack position: [x, y, yaw]
-        x, y, yaw = robot_dict['robot_0']['joint_state']['position']
+        pos = ob['robot_0']['joint_state']['position']
+        x, y, yaw = pos
 
-        # unpack forward & side velocity
-        forward_vel, side_vel = robot_dict['robot_0']['joint_state']['forward_velocity']
+        forward_vel, side_vel = ob['robot_0']['joint_state']['forward_velocity']
+        steering = ob['robot_0']['joint_state']['steering'][0]
 
-        # steering is an array with one element
-        steering = robot_dict['robot_0']['joint_state']['steering'][0]
-
-        # build state vector (using yaw from position or using steering — depends on your model)
+        # State vector for MPPI
         current_state = np.array([x, y, yaw, forward_vel])
 
 
@@ -85,17 +96,19 @@ def run_prius_main(n_steps=10000, dt=0.01):
             optimal_input, optimal_input_sequence, optimal_traj, sampled_traj_list = mppi.calc_control_input(
                 observed_x = current_state
             )
-            print(optimal_input)
+            print("steering input:" , optimal_input[0])
+            print("accelaration input:" , optimal_input[1])
         except IndexError as e:
             # the vehicle has reached the end of the reference path
             print("[ERROR] IndexError detected. Terminate simulation.")
             break
 
-        action = np.array([2.,1.])
-        
+        state[0] = state[0] + optimal_input[1] * dt
+        state[1] = optimal_input[0]
+
+        print(state)
         ### FIX that the env gets the right input
-        ob, *_ = env.step(action)
-        # print(ob)
+        ob, *_ = env.step(state)
 
     env.close()
 

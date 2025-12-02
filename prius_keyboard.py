@@ -36,7 +36,7 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
     for _ in range(n_steps):
         action = controller.step(dt)   # uses old state + input - drag
         ob, *_ = env.step(action)
-        print(ob, "\n")
+        print(action)
 
     env.close()
 
