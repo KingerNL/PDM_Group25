@@ -357,54 +357,81 @@ def create_connector(node1, node2, env):
 def find_closest_node(env, start_node, new_node, min_length=float('inf')):
     nearest_node, shortest_path = None, None
     
-    if start_node.children:
-        for child in start_node.children:
-            temp_node, temp_path, temp_length = find_closest_node(env, child, new_node, min_length=min_length)
-            if temp_node is None:
-                return nearest_node, shortest_path, min_length
-            if temp_length < min_length:
-                nearest_node, shortest_path, min_length = temp_node, temp_path, temp_length
+    # Use a stack for iterative traversal instead of recursion
+    stack = [start_node]
     
-    connect_line = create_connector(start_node, new_node, env)
-    if connect_line is None:
-        return nearest_node, shortest_path, min_length
-    
-    length = connect_line.length
-    
-    if length < min_length:
-        nearest_node = start_node
-        shortest_path = connect_line
-        min_length = length
+    while stack:
+        current_node = stack.pop()
+        
+        # Check connection from current node to new node
+        connect_line = create_connector(current_node, new_node, env)
+        if connect_line is not None:
+            length = connect_line.length
+            if length < min_length:
+                nearest_node = current_node
+                shortest_path = connect_line
+                min_length = length
+        
+        # Add children to stack
+        if current_node.children:
+            stack.extend(current_node.children)
     
     return nearest_node, shortest_path, min_length
 
 
-def find_nearby_nodes(start_node, goal_node, tol, nearby_nodes=[]):
-    if start_node.children:
-        for child in start_node.children:
-            if child.point.distance(goal_node.point) < tol:
-                nearby_nodes.append(child)
-            find_nearby_nodes(child, goal_node, tol, nearby_nodes)
+def find_nearby_nodes(start_node, goal_node, tol, nearby_nodes=None):
+    if nearby_nodes is None:
+        nearby_nodes = []
+    
+    # Use a stack for iterative traversal
+    stack = [start_node]
+    
+    while stack:
+        current_node = stack.pop()
+        
+        # Check if current node is nearby
+        if current_node.point.distance(goal_node.point) < tol:
+            nearby_nodes.append(current_node)
+        
+        # Add children to stack
+        if current_node.children:
+            stack.extend(current_node.children)
+    
     return nearby_nodes
 
 
 def update_children_cost(start_node, cost_difference):
-    if start_node.children:
-        for child in start_node.children:
-            child.cost = child.cost - cost_difference
-            update_children_cost(child, cost_difference)
+    # Use a stack for iterative traversal
+    stack = [start_node]
+    
+    while stack:
+        current_node = stack.pop()
+        
+        if current_node.children:
+            for child in current_node.children:
+                child.cost = child.cost - cost_difference
+                stack.append(child)
 
 
-def extract_path(final_node, path=[]):
-    if final_node.parent is not None:
-        path.append(final_node.path_to_parent)
-        extract_path(final_node.parent, path)
+def extract_path(final_node, path=None):
+    if path is None:
+        path = []
+    
+    # Use iteration instead of recursion
+    current_node = final_node
+    while current_node.parent is not None:
+        path.append(current_node.path_to_parent)
+        current_node = current_node.parent
+    
     return path
 
 
 def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
-    start_node = TreeNode(env.start[0], env.start[1])
-    goal_node = TreeNode(env.goal[0], env.goal[1])
+    # start_node = TreeNode(env.start[0], env.start[1])
+    # goal_node = TreeNode(env.goal[0], env.goal[1])
+    start_node = TreeNode(env.start[0], np.deg2rad(env.start[1]))  # Convert to radians
+    goal_node = TreeNode(env.goal[0], np.deg2rad(env.goal[1]))      # Convert to radians
+
     
     for n in tqdm(range(n_iter), desc="RRT* Progress"):
         if n == 1:
@@ -431,8 +458,9 @@ def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
             
             sampled_node.cost = parent_node.cost + path_to_parent.length
             
-            radius = 20
-            nodes_near_sample = find_nearby_nodes(start_node, sampled_node, radius, nearby_nodes=[])
+            #radius = 20
+            radius = min(50, 20 * (math.log(n + 1) / (n + 1)) ** (1/2) * env.width)
+            nodes_near_sample = find_nearby_nodes(start_node, sampled_node, radius)
             
             if nodes_near_sample:
                 min_cost = sampled_node.cost
@@ -475,16 +503,20 @@ def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
                             node_cost_difference = node.cost - node_updated_cost
                             update_children_cost(node, node_cost_difference)
     
-    nodes_near_goal = find_nearby_nodes(start_node, goal_node, dist_tolerance, nearby_nodes=[])
-    
+    nodes_near_goal = find_nearby_nodes(start_node, goal_node, dist_tolerance)
+
     if nodes_near_goal:
+        print(f"\nFound {len(nodes_near_goal)} nodes near goal!")
         node_min_cost = min(nodes_near_goal, key=lambda x: (x.cost) * 
-                           (goal_node.point.distance(x.point) + min(abs(goal_node.yaw - x.yaw), 
-                                                                     2 * math.pi - abs(goal_node.yaw - x.yaw))))
+                        (goal_node.point.distance(x.point) + min(abs(goal_node.yaw - x.yaw), 
+                                                                    2 * math.pi - abs(goal_node.yaw - x.yaw))))
         path = extract_path(node_min_cost)
-        print(f"\nRRT* completed successfully in {n_iter} iterations")
-        return path[::-1]  # Reverse to get path from start to goal
+        print(f"RRT* completed successfully in {n_iter} iterations")
+        print(f"Path has {len(path)} segments")
+        return path[::-1]
     else:
+        print(f"\nNo nodes found within {dist_tolerance} units of goal")
+        print("Try: increasing iterations, dist_tolerance, or adjusting obstacles")
         raise Exception("RRT* could not find a path. Try increasing iterations or adjusting parameters.")
 
 
@@ -501,28 +533,26 @@ def load_environment_from_csv(filename):
     """
     with open(filename, 'r') as f:
         reader = csv.reader(f)
+        rows = list(reader)  # Convert to list
+        print(rows)
+        # Read environment dimensions and parameters (row 0)
+        width, height, max_curv = float(rows[1][0]), float(rows[1][1]), [float(rows[1][2])]
         
-        # Read environment dimensions and parameters
-        params = next(reader)
-        width, height, max_curv = float(params[0]), float(params[1]), [float(params[2])]
+        # Read start position (row 1)
+        start = (Point(float(rows[2][0]), float(rows[2][1])), float(rows[2][2]))
         
-        # Read start position
-        start_data = next(reader)
-        start = (Point(float(start_data[0]), float(start_data[1])), float(start_data[2]))
+        # Read goal position (row 2)
+        goal = (Point(float(rows[3][0]), float(rows[3][1])), float(rows[3][2]))
         
-        # Read goal position
-        goal_data = next(reader)
-        goal = (Point(float(goal_data[0]), float(goal_data[1])), float(goal_data[2]))
-        
-        # Read obstacles
+        # Read obstacles (row 3 onwards)
         obstacles = []
-        for row in reader:
-            if len(row) >= 6:  # At least 3 points (x,y pairs) to make a polygon
-                coords = [(float(row[i]), float(row[i+1])) for i in range(0, len(row), 2)]
+        for i in range(4, len(rows)):
+            row = rows[i]
+            if row and len(row) >= 6:  # At least 3 points (x,y pairs) to make a polygon
+                coords = [(float(row[j]), float(row[j+1])) for j in range(0, len(row), 2)]
                 obstacles.append(Polygon(coords))
         
     return Environment(width, height, obstacles, start, goal, max_curv)
-
 
 def save_path_to_csv(path, filename):
     """
@@ -559,7 +589,7 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # Load environment from CSV
-    input_file = "environment.csv"
+    input_file = "/home/jipr/Robotics_master/PDM/project/PDM_Group25/RRTs/environment.csv"
     output_file = "planned_path.csv"
     
     try:
@@ -572,7 +602,7 @@ if __name__ == "__main__":
         print()
         
         # Run RRT*
-        path = rrt_star_dubins(env, n_iter=2000, step_size=5.0, dist_tolerance=2.0)
+        path = rrt_star_dubins(env, n_iter=1000, step_size=1.0, dist_tolerance=40.0)
         
         # Save path to CSV
         save_path_to_csv(path, output_file)
