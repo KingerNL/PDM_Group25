@@ -1,8 +1,11 @@
+import numpy as np
+
 def static_scenario_1():
     obstacles = [
     {
         "type": "sphere",
-        "position": (1.0, 2.0, 0),
+        "position": (0.0, 4.0, 0),
+        "orientation": 0.0,        
         "width": 0.0,
         "length": 0.0,
         "height": 2.0,
@@ -11,7 +14,8 @@ def static_scenario_1():
     },
     {
         "type": "cube",
-        "position": (-1.0, 1.0, 0.0),
+        "position": (-3.0, 2.0, 0.0),
+        "orientation": 0.0,        
         "width": 1.0,
         "length": 1.0,
         "height": 2.0,
@@ -21,6 +25,7 @@ def static_scenario_1():
     {
         "type": "wall",
         "position": (2.0, -2.0, 0.0),
+        "orientation": np.pi/4,             #Orientation in radians (z-axis rotation)
         "width": 1.0,
         "length": 2.0,
         "height": 2.0,

@@ -3,10 +3,21 @@ from mpscenes.obstacles.box_obstacle import BoxObstacle
 from mpscenes.obstacles.cylinder_obstacle import CylinderObstacle
 from mpscenes.obstacles.urdf_obstacle import UrdfObstacle
 
+import math
+import numpy as np
+
 import uuid
 
+def theta_to_quaternion(theta): #Helper function to change euler angles to quaternions that URDF library objects uses
+    theta = -theta          #Make negative so that positive orientation angle follow right hand rule
+    qx = math.sin(theta/2)  #Only calculate yaw/z-axis rotation
+    qy = 0.0
+    qz = 0.0
+    qw = math.cos(theta/2)
+    return (qx, qy, qz, qw)
 
-def place_obstacles_in_env(env, obstacles_specs):
+
+def create_env(env, obstacles_specs):
     """
     Takes an obstacle list with your custom format and inserts them into the
     environment using env.add_obstacle(). Supports:
@@ -22,11 +33,13 @@ def place_obstacles_in_env(env, obstacles_specs):
         if obs_type == "wall":
             # Full-format wall
             pos = list(obs["position"])
-            rgba = list(obs["rgba"]) if obs.get("rgba") else None
+            rgba = list(obs["rgba"])
+            quaternion = theta_to_quaternion(obs["orientation"])
             content_dict = {
                 "type": "box",
                 "geometry": {
                     "position": pos,
+                    "orientation" : quaternion,       #Rotation in quaternions
                     "width": obs["width"],
                     "length": obs["length"],
                     "height": obs["height"],

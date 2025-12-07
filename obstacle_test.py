@@ -4,9 +4,8 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from keyboard_control import KeyboardController
 
-import create_enviroment
-
-import obstacles_spec_generator
+import create_enviroment        #Custom script that places functions inside the enviroment
+import obstacles_spec_generator #Custom script that has several scenarios containing objects to place in the enviroment
 
 def run_prius_keyboard(n_steps=10000, dt=0.01):
 
@@ -34,7 +33,7 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
 
     obstacles_specs = obstacles_spec_generator.static_scenario_1()
 
-    create_enviroment.place_obstacles_in_env(env, obstacles_specs)
+    create_enviroment.create_env(env, obstacles_specs)
 
     controller = KeyboardController()
     controller.start()
