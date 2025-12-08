@@ -11,6 +11,8 @@ from scipy.spatial.transform import Rotation as Rot
 from shapely.geometry import Point, LineString, Polygon
 from tqdm import tqdm
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # ==================== Dubins Path Implementation ====================
 
@@ -425,38 +427,24 @@ def extract_path(final_node, path=None):
     
     return path
 
-def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
+def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1, visualize=True):
     start_node = TreeNode(env.start[0], np.deg2rad(env.start[1]))
     goal_node = TreeNode(env.goal[0], np.deg2rad(env.goal[1]))
     
     valid_nodes_added = 0
     
+    # Setup visualization
+    if visualize:
+        plt.figure(figsize=(10, 10))
+        plt.ion()  # Interactive mode on
+    
     for n in tqdm(range(n_iter), desc="RRT* Progress"):
-        # Much stronger goal biasing - 20% of the time sample the goal directly
+        # 20% of the time sample the goal directly
         if np.random.random_sample() < 0.2:
             sampled_node = TreeNode(goal_node.point, goal_node.yaw)
         else:
-            # Sample random point
-            sampled_point = rand_coords(env.width, env.height)
-            
-            # 50% chance to bias the sample toward goal region
-            if np.random.random_sample() < 0.5:
-                # Sample in a region biased toward the goal
-                direction_to_goal = np.array([goal_node.point.x - start_node.point.x, 
-                                             goal_node.point.y - start_node.point.y])
-                direction_to_goal = direction_to_goal / np.linalg.norm(direction_to_goal)
-                
-                # Add some randomness but bias toward goal
-                bias_factor = np.random.uniform(0.5, 1.0)
-                biased_x = sampled_point.x + direction_to_goal[0] * env.width * bias_factor * 0.3
-                biased_y = sampled_point.y + direction_to_goal[1] * env.height * bias_factor * 0.3
-                
-                # Keep within bounds
-                biased_x = np.clip(biased_x, 0, env.width)
-                biased_y = np.clip(biased_y, 0, env.height)
-                sampled_point = Point(biased_x, biased_y)
-            
-            sampled_node = TreeNode(sampled_point, np.deg2rad(np.random.randint(0, 360, 1))[0])
+            sampled_node = TreeNode(rand_coords(env.width, env.height), 
+                                  np.deg2rad(np.random.randint(0, 360, 1))[0])
             
             # 50% chance to orient toward goal
             if np.random.random_sample() < 0.5:
@@ -475,8 +463,8 @@ def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
                 sampled_node = new_node_inradius
             
             sampled_node.cost = parent_node.cost + path_to_parent.length
-            
-            radius = min(50, 30 * ((math.log(valid_nodes_added + 1) / (valid_nodes_added + 1)) ** (1/2)))
+            radius = 0.5
+            #radius = min(50, 30 * ((math.log(valid_nodes_added + 1) / (valid_nodes_added + 1)) ** (1/2)))
             nodes_near_sample = find_nearby_nodes(start_node, sampled_node, radius)
             
             if nodes_near_sample:
@@ -500,6 +488,10 @@ def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
             sampled_node.path_to_parent = path_to_parent
             valid_nodes_added += 1
             
+            # Visualize every 50 iterations
+            if visualize and n % 50 == 0:
+                visualize_rrt_progress(env, start_node, goal_node, n, sampled_node, path_to_parent)
+            
             if nodes_near_sample:
                 for node in nodes_near_sample:
                     cost_estimate = sampled_node.point.distance(node.point) + min(abs(sampled_node.yaw - node.yaw), 
@@ -521,44 +513,77 @@ def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1):
                             node_cost_difference = node.cost - node_updated_cost
                             update_children_cost(node, node_cost_difference)
         
-        # Print progress every 200 iterations
         if n % 200 == 0 and n > 0:
             print(f"\nIteration {n}: Added {valid_nodes_added} valid nodes to tree")
     
+    # Final visualization
+    if visualize:
+        visualize_rrt_progress(env, start_node, goal_node, n_iter)
+        plt.ioff()
+    
     print(f"\nTotal valid nodes added: {valid_nodes_added}")
     
-    # Find the closest node to goal regardless of distance
-    all_nodes = []
-    def collect_all_nodes(node):
-        all_nodes.append(node)
-        for child in node.children:
-            collect_all_nodes(child)
-    collect_all_nodes(start_node)
-    
-    if all_nodes:
-        closest_node = min(all_nodes, key=lambda x: x.point.distance(goal_node.point))
-        print(f"Closest node to goal: {closest_node.point.distance(goal_node.point):.2f} units away")
-
-
-
-    print(f"\nTotal valid nodes added: {valid_nodes_added}")
-    nodes_near_goal = find_nearby_nodes(start_node, goal_node, dist_tolerance)
-    
-    if nodes_near_goal:
-        print(f"Found {len(nodes_near_goal)} nodes near goal!")
-        node_min_cost = min(nodes_near_goal, key=lambda x: (x.cost) * 
-                           (goal_node.point.distance(x.point) + min(abs(goal_node.yaw - x.yaw), 
-                                                                     2 * math.pi - abs(goal_node.yaw - x.yaw))))
-        path = extract_path(node_min_cost)
-        print(f"Path has {len(path)} segments")
-        return path[::-1]
-    else:
-        print(f"No nodes found within {dist_tolerance} units of goal")
-        print(f"Try increasing dist_tolerance or iterations")
-        raise Exception("RRT* could not find a path.")
+    # ... rest of your code for finding path ...
     
     
 
+def visualize_rrt_progress(env, start_node, goal_node, iteration, sampled_node=None, new_connection=None):
+    """
+    Visualize the RRT* tree growth in real-time
+    """
+    plt.cla()
+    
+    # Set plot limits
+    plt.xlim([0, env.width])
+    plt.ylim([0, env.height])
+    plt.axis("equal")
+    
+    # Draw obstacles
+    for obstacle in env.obstacles:
+        if obstacle.geom_type == 'Polygon':
+            plt.gca().add_patch(patches.Polygon(list(obstacle.exterior.coords), 
+                                               color="grey", alpha=0.7))
+    
+    # Draw start and goal
+    plt.plot(env.start[0].x, env.start[0].y, 'go', markersize=12, label='Start')
+    plt.plot(env.goal[0].x, env.goal[0].y, 'r*', markersize=15, label='Goal')
+    
+    # Draw goal tolerance circle
+    goal_circle = plt.Circle((env.goal[0].x, env.goal[0].y), 
+                             20.0,  # Use your dist_tolerance value
+                             color='red', fill=False, linestyle='--', alpha=0.3)
+    plt.gca().add_patch(goal_circle)
+    
+    # Draw tree - traverse and plot all connections
+    def draw_tree(node):
+        if node.children:
+            for child in node.children:
+                if child.path_to_parent is not None:
+                    coords = list(child.path_to_parent.coords)
+                    xs, ys = zip(*coords)
+                    plt.plot(xs, ys, 'b-', linewidth=0.5, alpha=0.6)
+                draw_tree(child)
+    
+    draw_tree(start_node)
+    
+    # Highlight the new connection if provided
+    if new_connection is not None:
+        coords = list(new_connection.coords)
+        xs, ys = zip(*coords)
+        plt.plot(xs, ys, 'g-', linewidth=2, alpha=0.8)
+    
+    # Draw sampled node
+    if sampled_node is not None:
+        plt.plot(sampled_node.point.x, sampled_node.point.y, 'ro', markersize=4)
+    
+    plt.title(f'RRT* Progress - Iteration {iteration}')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.pause(0.001)
+    
+    # Allow ESC key to exit
+    plt.gcf().canvas.mpl_connect('key_release_event',
+                                lambda event: exit(0) if event.key == 'escape' else None)
 
 # ==================== CSV I/O Functions ====================
 
@@ -642,7 +667,7 @@ if __name__ == "__main__":
         print()
         
         # Run RRT*
-        path = rrt_star_dubins(env, n_iter=2000, step_size=10.0, dist_tolerance=25.0)        
+        path = rrt_star_dubins(env, n_iter=1000, step_size=1.0, dist_tolerance=10.0, visualize=True)      
         # Save path to CSV
         save_path_to_csv(path, output_file)
         
