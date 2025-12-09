@@ -8,6 +8,11 @@ import numpy as np
 
 import uuid
 
+#CSV currently:
+#First line: Xenv, Yenv, Turn_Radius
+#Second
+
+
 def theta_to_quaternion(theta): #Helper function to change euler angles to quaternions that URDF library objects uses
     theta = -theta          #Make negative so that positive orientation angle follow right hand rule
     qx = math.sin(theta/2)  #Only calculate yaw/z-axis rotation
@@ -15,7 +20,6 @@ def theta_to_quaternion(theta): #Helper function to change euler angles to quate
     qz = 0.0
     qw = math.cos(theta/2)
     return (qx, qy, qz, qw)
-
 
 def create_env(env, obstacles_specs):
     """
@@ -75,6 +79,8 @@ def create_env(env, obstacles_specs):
         # ---------------------------------------------------------------------
         # --- BOX / CUBE ------------------------------------------------------
         elif obs_type in ["box", "cube"]:
+            print("Type of cube/box is: ", type(obs["position"]), "OR WITH LIST: ", type(list(obs["position"])))
+            print("Additional typing: ", type(obs["height"]))
             content_dict = {
                 "type": "box",
                 "geometry": {
