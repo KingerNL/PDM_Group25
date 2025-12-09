@@ -28,7 +28,7 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
     env = UrdfEnv(dt=dt, robots=robots, render=True)
     ob = env.reset()
     print("Initial observation:", ob)
-
+ 
     controller = KeyboardController()
     controller.start()
 
