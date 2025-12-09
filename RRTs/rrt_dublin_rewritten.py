@@ -518,12 +518,40 @@ def rrt_star_dubins(env, n_iter=1000, step_size=float('inf'), dist_tolerance=1, 
     
     # Final visualization
     if visualize:
-        visualize_rrt_progress(env, start_node, goal_node, n_iter)
+        visualize_rrt_progress(env, start_node, goal_node, n_iter, dist_tolerance) 
         plt.ioff()
     
     print(f"\nTotal valid nodes added: {valid_nodes_added}")
     
-    # ... rest of your code for finding path ...
+    # Find the closest node to goal regardless of distance
+    all_nodes = []
+    def collect_all_nodes(node):
+        all_nodes.append(node)
+        for child in node.children:
+            collect_all_nodes(child)
+    collect_all_nodes(start_node)
+    
+    if all_nodes:
+        closest_node = min(all_nodes, key=lambda x: x.point.distance(goal_node.point))
+        print(f"Closest node to goal: {closest_node.point.distance(goal_node.point):.2f} units away")
+    
+    nodes_near_goal = find_nearby_nodes(start_node, goal_node, dist_tolerance)
+    
+    if nodes_near_goal:
+        print(f"Found {len(nodes_near_goal)} nodes near goal!")
+        
+        node_min_cost = min(nodes_near_goal, 
+                           key=lambda node: node.cost + goal_node.point.distance(node.point) + 
+                           min(abs(goal_node.yaw - node.yaw), 2 * math.pi - abs(goal_node.yaw - node.yaw)))
+        
+        path = extract_path(node_min_cost)
+        print(f"RRT* completed successfully in {n_iter} iterations")
+        print(f"Path has {len(path)} segments")
+        return path[::-1]  # Reverse to get path from start to goal
+    else:
+        print(f"No nodes found within {dist_tolerance} units of goal")
+        print(f"Try increasing dist_tolerance or iterations")
+        raise Exception("RRT* could not find a path. Try increasing iterations or adjusting parameters.")
     
     
 
