@@ -1238,24 +1238,18 @@ class RRT:
                 c='red', s=100, marker='*', 
                 edgecolors='black', linewidths=2, 
                 label='Goal', zorder=5)
-        
-        
-        
-        # # Highlight best edge
-
-        # best_edge = self.select_best_edge()
-        # if best_edge.path:
-        #     path = np.array(best_edge.path)
-        #     ax.plot(path[:, 0], path[:, 1], 
-        #         'r-', linewidth=2, alpha=0.8, label='Best Path')
             
 
         # Plot edges/paths
-        # for _, val in self.edges.items():
-        #     if val.path:
-        #         path = np.array(val.path)
-        #         ax.plot(path[:, 0], path[:, 1], 
-        #             'b-', linewidth=0.5, alpha=0.5)
+        for _, val in self.edges.items():
+            if val.path:
+                # Convert to list and extract (x, y) for each point
+                path_xy = [(p[0], p[1]) for p in val.path if len(p) >= 2]
+                if len(path_xy) > 1:
+                    path_xy = np.array(path_xy)
+                    ax.plot(path_xy[:, 0], path_xy[:, 1], 
+                            'b-', linewidth=0.5, alpha=0.5)
+
 
         # Highlight best path to goal   
         best_path, best_edges = self.get_best_path_to_goal()
