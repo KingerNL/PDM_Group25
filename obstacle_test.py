@@ -34,16 +34,20 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
     #obstacles_specs = obstacles_spec_generator.static_scenario_1()
     #create_enviroment.create_env(env, obstacles_specs)
 
-    testArray = np.array(([                 #Test array (x, y, radius)
-                    [-1.0, 2.0, 1.0],
-                    [4.0, 6.0, 2.0],
-                    [-2.0, -2.0, 1.0],
-                    [1.0, -4.0, 1.0],
-                    [-5.0, 2.0, 1.0],
-                    [5.0, 0.0, 1.0],
-                    [2.0, 3.0, 1.0]]))
+   # testArray = np.array(([                 #Test array (x, y, radius)
+   #                 [-1.0, 2.0, 1.0],
+   #                 [4.0, 6.0, 2.0],
+   #                 [-2.0, -2.0, 1.0],
+   #                 [1.0, -4.0, 1.0],
+   #                 [-5.0, 2.0, 1.0],
+   #                 [5.0, 0.0, 1.0],
+   #                 [2.0, 3.0, 1.0]]))
     
-    obstacles_spec_generator.array_to_spec(env, testArray)
+    testArray = np.array(([                 #Test array (x, y, radius)
+                    [2.0, 2.0, 1.0],
+                    [-4.0, -4.0, 1.0]]))
+    
+    obstacles_spec_generator.add_obstacleArray_to_env(env, testArray)
 
     controller = KeyboardController()
     controller.start()

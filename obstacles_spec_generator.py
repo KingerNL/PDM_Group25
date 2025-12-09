@@ -1,12 +1,10 @@
 import numpy as np
+import csv
 from mpscenes.obstacles.cylinder_obstacle import CylinderObstacle
 import uuid
 
-def array_to_spec(env, obstacleArray):     #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
+def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
                                         #Only can make circles (currently)
-    #obstacles = []
-    #obstacle_specs = []
-
     for obstacle in obstacleArray:
         x_centre = float(obstacle[0].tolist())
         y_centre = float(obstacle[1].tolist())
@@ -28,9 +26,65 @@ def array_to_spec(env, obstacleArray):     #Gets 2D numpy array with: x, y and r
             )
         env.add_obstacle(obstacle_obj)
 
+    vertices = make_circle_boundingbox(obstacleArray, 0)
+    generate_vertices_csv(vertices)
+
     return env
 
-#array_to_spec(testArray)
+def make_circle_boundingbox(obstacleArray, margin=0):
+    """
+    Given a numpy array of circles (x_center, y_center, radius),
+    return the corners of the bounding boxes as a flat array with a margin.
+    
+    Parameters:
+        circles (np.ndarray): shape (n, 3), each row [x, y, r]
+        margin (float): extra distance to extend the bounding box beyond the circle
+    
+    Returns:
+        np.ndarray: shape (n, 8), corners for each circle
+                    order: [top_left_x, top_left_y, top_right_x, top_right_y,
+                            bottom_right_x, bottom_right_y, bottom_left_x, bottom_left_y]
+    """
+    x = obstacleArray[:, 0]
+    y = obstacleArray[:, 1]
+    r = obstacleArray[:, 2]
+
+    xmin = x - r    
+    xmax = x + r    
+    ymin = y - r    
+    ymax = y + r    
+
+    print("top left (xmin) node x: ", xmin, "top left(ymin) node y: ", ymin)
+    print("top right(xmin) node x: ", xmin, "top right(ymax) node y: ", ymax)
+    print("bottom_right(xmax) node x: ", xmax, "bottom_right(ymax) node y: ", ymax)
+    print("bottom_left(xman) node x: ", xmax, "bottom_left(ymin) node y: ", ymin)
+
+    vertices = np.column_stack([
+        xmin, ymin,     # top-left
+        xmax, ymin,     # bottom-left
+        xmax, ymax,     # bottom-right
+        xmin, ymax      # top-right
+    ])
+
+    print(vertices)
+    return vertices
+
+def generate_vertices_csv(vertices, filename="obstacle_enviroment.csv"):
+    print("making csv file")
+
+    header = [
+        "x1","y1","x2","y2","x3","y3","x4","y4"
+    ]
+
+    with open(filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(vertices)
+
+    print(f"Saved {vertices.shape[0]} obstacles to {filename}")
+
+
+    return
 
 def static_scenario_1():
     obstacles = [
