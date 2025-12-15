@@ -718,7 +718,6 @@ class Wall:
 The environment with static polygonal obstacles
 """
 
-
 class StaticEnvironment:
     """
     Class implementing a very simple bounded 2D world, containing polygonal
@@ -825,6 +824,46 @@ class StaticEnvironment:
         self.add_obstacle(obstacle)
         return obstacle
     
+    def add_obstacle_with_vertices(self, vertices):
+        """
+        Create and add an obstacle at a specific location using given vertices.
+
+        Parameters
+        ----------
+        vertices : list of tuple
+            List of (x, y) coordinates for the obstacle's vertices (should be 4 for a quadrilateral).
+
+        Returns
+        -------
+        obstacle : Obstacle
+            The created obstacle instance.
+        """
+        from shapely.geometry import Polygon
+        print("Adding obstacle with vertices:", vertices)
+        # Convert vertices to numpy array
+        points = np.array(vertices)
+        center = np.mean(points, axis=0)
+
+        # Create obstacle with dummy initialization
+        obstacle = Obstacle(self.dimensions, 1, len(points))  # size and nb_pts are placeholders
+        obstacle.center = center
+        obstacle.points = points
+
+        # Recalculate bounding box
+        obstacle.bounding_box = (
+            np.min(points[:, 0]),
+            np.min(points[:, 1]),
+            np.max(points[:, 0]),
+            np.max(points[:, 1])
+        )
+
+        # Recreate polygon
+        obstacle.polygon = Polygon(points)
+
+        self.add_obstacle(obstacle)
+        return obstacle
+
+
     def clear_obstacles(self):
         """
         Remove all obstacles from the environment.
@@ -1321,8 +1360,12 @@ class RRT:
         full_path = [self.root]
         for edge in path_edges:
             if edge.path:
-                # Add all points in the edge path except the first (already added)
-                full_path.extend(list(edge.path)[1:])
+                pts = list(edge.path)
+                for i in range(1, len(pts)):
+                    prev = pts[i-1]
+                    curr = pts[i]
+                    angle = np.arctan2(curr[1] - prev[1], curr[0] - prev[0])
+                    full_path.append((curr[0], curr[1], angle))
         
         return full_path, path_edges
 
@@ -1433,9 +1476,14 @@ if __name__ == "__main__":
     env = StaticEnvironment(dimensions=(20, 20))
 
     # Add obstacles at specific locations
-    env.add_obstacle_at(center=(5, 5), radius=1, nb_vertices=5)
-    env.add_obstacle_at(center=(10, 14), radius=1, nb_vertices=6)
-    env.add_obstacle_at(center=(15, 13), radius=1, nb_vertices=4)
+    # env.add_obstacle_at(center=(5, 5), radius=1, nb_vertices=5)
+    # env.add_obstacle_at(center=(10, 14), radius=1, nb_vertices=6)
+    # env.add_obstacle_at(center=(15, 13), radius=1, nb_vertices=4)
+
+    env.add_obstacle_with_vertices([(5, 5), (8, 5), (8, 8), (5, 8)])
+    env.add_obstacle_with_vertices([(10, 10), (12, 10), (12, 12), (10, 12)])    
+    env.add_obstacle_with_vertices([(15, 15), (16, 15), (16, 16), (15, 16)])
+    env.add_obstacle_with_vertices([(15, 10), (17, 10), (17, 12), (15, 12)])
 
     # Plot the environment - should now display!
     #env.plot(close=False, display=True)
@@ -1459,10 +1507,19 @@ if __name__ == "__main__":
     
  
     # We run 100 iterations of growth
-    rrt.run(end, nb_iteration=2000, goal_rate=0.1, metric='euclidian')
+    rrt.run(end, nb_iteration=2000, goal_rate=0.08, metric='metric')
 
     fig, ax = env.plot()
     rrt.plot(fig=fig, ax=ax, nodes=True, file_name='rrt_path.png')
+    best_path, best_edges = rrt.get_best_path_to_goal()
+
+    print("Best path waypoints:")
+    if best_path is not None:
+        for waypoint in best_path:
+            print(type(waypoint), waypoint)
+    else:
+        print("No path to goal found.")
+
     # Keep the plot open
     plt.show()
 
