@@ -28,14 +28,15 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
     env = UrdfEnv(dt=dt, robots=robots, render=True)
     ob = env.reset()
     print("Initial observation:", ob)
-
+ 
     controller = KeyboardController()
     controller.start()
 
     # main simulation loop
     for _ in range(n_steps):
         action = controller.step(dt)   # uses old state + input - drag
-        env.step(action)
+        ob, *_ = env.step(action)
+        print(action)
 
     env.close()
 
