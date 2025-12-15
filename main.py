@@ -1,6 +1,7 @@
 import numpy as np
 import csv
 import time
+import matplotlib.pyplot as plt
 
 from urdfenvs.urdf_common.urdf_env import UrdfEnv
 from urdfenvs.urdf_common.bicycle_model import BicycleModel
@@ -48,8 +49,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
     ob, _ = env.reset()
 
     testArray = np.array(([                 #Test array (x, y, radius)
-                    [5.0, 5.0, 1.0],
-                    [10.0, 10.0, 1.0]]))
+                    [8.0, 8.0, 2]]))
     
     _ , all_vertices = add_obstacleArray_to_env(env, testArray)
 
@@ -59,22 +59,41 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
 
 
     best_path = rrt_main(all_vertices)
-    print("path: ", best_path)
+    
 
 
 ### --------------------------------------------------MPPI-------------------------------------------------###
     # load and visualize reference path
-    ref_path = np.genfromtxt('Data/ovalpath.csv', delimiter=',', skip_header=1)
+    ref_path = np.array(best_path)
+    vel_column = np.full((ref_path.shape[0], 1), 2)  # shape (10, 1) filled with 5
+    ref_path = np.hstack((ref_path, vel_column))
+
+    x = ref_path[:, 0]  # first column
+    y = ref_path[:, 1]  # second column
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Plot path
+    ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path')
+
+    # Add black circles
+    for i in range(len(testArray)):
+        circle = plt.Circle((testArray[i, 0], testArray[i, 1]), testArray[i, 2], color='black', fill=True)
+        ax.add_patch(circle)
+
+    # Labels, grid, and aspect ratio
+    ax.set_title("Path with Black Dots")
+    ax.set_xlabel("x coordinate")
+    ax.set_ylabel("y coordinate")
+    ax.grid(True)
+    ax.set_aspect('equal', 'box')
+
+    # Step 4: Save the plot to a file instead of showing it
+    plt.savefig("Data/path_plot.png", dpi=300)  # saves as PNG with 300 dpi
+    print("Plot saved as 'path_plot.png'")
 
     #variables
     state = np.zeros(2)
-
-    ### CSV to np.array!!!!!!!!!!!!!!!
-    OBSTACLE_CIRCLES = np.array([
-        [+ 8.0, +5.0, 4.0], # pos_x, pos_y, radius [m] in the global frame
-        [+18.0, -5.0, 4.0], # pos_x, pos_y, radius [m] in the global frame
-    ])
-
 
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
@@ -91,7 +110,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
         stage_cost_weight = np.array([50.0, 50.0, 1.0, 20.0]), # weight for [x, y, yaw, v]
         terminal_cost_weight = np.array([50.0, 50.0, 1.0, 20.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
-        obstacle_circles = OBSTACLE_CIRCLES, # [obs_x, obs_y, obs_radius]
+        obstacle_circles = testArray, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 1.2, # safety margin for collision check
     )
 

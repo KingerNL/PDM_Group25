@@ -1473,17 +1473,20 @@ def rrt_main(vertices):
 
     #----------------------------------------------------------------------------------
     # Create empty environment
-    env_rrt = StaticEnvironment(dimensions=(20, 20))
+    env_rrt = StaticEnvironment(dimensions=(15, 15))
 
     # Add obstacles at specific locations
     # env.add_obstacle_at(center=(5, 5), radius=1, nb_vertices=5)
     # env.add_obstacle_at(center=(10, 14), radius=1, nb_vertices=6)
     # env.add_obstacle_at(center=(15, 13), radius=1, nb_vertices=4)
 
-    # print("vertices: " ,vertices)
-
     for vertice in vertices:
         env_rrt.add_obstacle_with_vertices(vertice)
+
+    # env_rrt.add_obstacle_with_vertices([(5, 5), (8, 5), (8, 8), (5, 8)])
+    # env_rrt.add_obstacle_with_vertices([(10, 10), (12, 10), (12, 12), (10, 12)])    
+    # env_rrt.add_obstacle_with_vertices([(15, 15), (16, 15), (16, 16), (15, 16)])
+    # env_rrt.add_obstacle_with_vertices([(15, 10), (17, 10), (17, 12), (15, 12)])
 
     # Plot the environment - should now display!
     #env.plot(close=False, display=True)
@@ -1499,8 +1502,8 @@ def rrt_main(vertices):
     # start = env.random_free_space()
     # end = env.random_free_space()
 
-    start = (1, 1, 0) # heading east
-    end = (18, 18, 3.141) # heading west
+    start = (0, 0, 0) # heading east
+    end = (14, 14, 3.141) # heading west
 
     # We initialize an empty tree
     rrt.set_start(start)

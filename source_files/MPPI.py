@@ -261,6 +261,8 @@ class MPPIControllerForPathTracking():
         if update_prev_idx:
             self.prev_waypoints_idx = nearest_idx 
 
+        # print("ref point: " , ref_x , ref_y)
+
         return nearest_idx, ref_x, ref_y, ref_yaw, ref_v
 
     def _F(self, x_t: np.ndarray, v_t: np.ndarray) -> np.ndarray:
