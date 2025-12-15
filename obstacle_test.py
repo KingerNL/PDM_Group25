@@ -42,12 +42,19 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
    #                 [-5.0, 2.0, 1.0],
    #                 [5.0, 0.0, 1.0],
    #                 [2.0, 3.0, 1.0]]))
+
+    start_x = ob[0]['robot_0']['joint_state']['position'][0]    #Get current/start position
+    start_y = ob[0]['robot_0']['joint_state']['position'][1]    #Get current/start position
+    start_position = [start_x, start_y, 0.05]
+    obstacles_spec_generator.add_visual_marker(start_position, rgba=(1.0, 0.0, 0.0, 0.6))   #Create non-colliding marker at start
     
-    testArray = np.array(([                 #Test array (x, y, radius)
+    testArray = np.array(([                 #Test array of obstacles to be placed (x, y, radius)
                     [2.0, 2.0, 1.0],
                     [-4.0, -4.0, 1.0]]))
-    
     obstacles_spec_generator.add_obstacleArray_to_env(env, testArray)
+    
+    goal_position = [1.0, 1.0, 0.05]
+    obstacles_spec_generator.add_visual_marker(goal_position)   #Create non-colliding marker at goal
 
     controller = KeyboardController()
     controller.start()
