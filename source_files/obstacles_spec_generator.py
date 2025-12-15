@@ -27,9 +27,9 @@ def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x,
         env.add_obstacle(obstacle_obj)
 
     vertices = make_circle_boundingbox(obstacleArray, 0)
-    generate_vertices_csv(vertices)
+    #generate_vertices_csv(vertices)
 
-    return env
+    return env, vertices
 
 def make_circle_boundingbox(obstacleArray, margin=0):
     """
@@ -54,20 +54,19 @@ def make_circle_boundingbox(obstacleArray, margin=0):
     ymin = y - r    
     ymax = y + r    
 
-    print("top left (xmin) node x: ", xmin, "top left(ymin) node y: ", ymin)
-    print("top right(xmin) node x: ", xmin, "top right(ymax) node y: ", ymax)
-    print("bottom_right(xmax) node x: ", xmax, "bottom_right(ymax) node y: ", ymax)
-    print("bottom_left(xman) node x: ", xmax, "bottom_left(ymin) node y: ", ymin)
+    all_vertices = []
 
-    vertices = np.column_stack([
-        xmin, ymin,     # top-left
-        xmax, ymin,     # bottom-left
-        xmax, ymax,     # bottom-right
-        xmin, ymax      # top-right
-    ])
+    # Loop over each obstacle and create its vertices
+    for i in range(len(x)):
+        vertices = [
+            (xmin[i], ymin[i]),
+            (xmax[i], ymin[i]),
+            (xmax[i], ymax[i]),
+            (xmin[i], ymax[i])
+        ]
+        all_vertices.append(vertices)
 
-    print(vertices)
-    return vertices
+    return all_vertices
 
 def generate_vertices_csv(vertices, filename="obstacle_enviroment.csv"):
     print("making csv file")

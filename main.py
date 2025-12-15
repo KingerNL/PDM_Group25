@@ -1,10 +1,15 @@
 import numpy as np
 import csv
+import time
 
 from urdfenvs.urdf_common.urdf_env import UrdfEnv
 from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
-from MPPI import MPPIControllerForPathTracking
+from source_files.MPPI import MPPIControllerForPathTracking
+
+from source_files.obstacles_spec_generator import add_obstacleArray_to_env #Custom script that has several scenarios containing objects to place in the enviroment
+
+from source_files.rrt_dubin_felienc import rrt_main
 
 
 
@@ -15,36 +20,7 @@ max_accel_abs = 50.0
 samples_per_dt = 50
 horizon_step_T = 25
 
-from mpscenes.obstacles.cylinder_obstacle import CylinderObstacle
-cylinder_obstacle_dict = {
-    "type": "cylinder",
-    "movable": False,
-    "geometry": {
-        "position": [8.0, 5.0, 0.0],
-        "radius": 4,
-        "height": 2.0,
-    },
-    "rgba": [0.1, 0.3, 0.3, 1.0],
-}
-cylinder_obstacle = CylinderObstacle(
-    name="cylinder_obstacle",
-    content_dict=cylinder_obstacle_dict
-)
- 
-cylinder_obstacle_dict2 = {
-    "type": "cylinder",
-    "movable": False,
-    "geometry": {
-        "position": [18.0, -5.0, 0.0],
-        "radius": 4,
-        "height": 2.0,
-    },
-    "rgba": [0.1, 0.3, 0.3, 1.0],
-}
-cylinder_obstacle2 = CylinderObstacle(
-    name="cylinder_obstacle2",
-    content_dict=cylinder_obstacle_dict2
-)
+
 
 
 def run_prius_main(replay = False, n_steps=10000, dt=0.01):
@@ -54,7 +30,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
         BicycleModel(
             urdf='prius.urdf',
             mode="vel",
-            scaling=1,
+            scaling=0.3,
             wheel_radius=wheel_radius,
             wheel_distance=wheel_base,
             actuated_wheels=[
@@ -70,11 +46,20 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
     
     env = UrdfEnv(dt=dt, robots=robots, render=True)
     ob, _ = env.reset()
-    env.add_obstacle(cylinder_obstacle)
-    env.add_obstacle(cylinder_obstacle2)
 
-###---------------------------------------------RRT* with dublins path-------------------------------------###
+    testArray = np.array(([                 #Test array (x, y, radius)
+                    [5.0, 5.0, 1.0],
+                    [10.0, 10.0, 1.0]]))
     
+    _ , all_vertices = add_obstacleArray_to_env(env, testArray)
+
+###---------------------------------------------RRT with dublins path-------------------------------------###
+    
+
+
+
+    best_path = rrt_main(all_vertices)
+    print("path: ", best_path)
 
 
 ### --------------------------------------------------MPPI-------------------------------------------------###
@@ -155,7 +140,8 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
 
 
     #sleep before closing the env
-    time.sleep(3)
+    time.sleep(5)
+    print("close")
     env.close()
 
 

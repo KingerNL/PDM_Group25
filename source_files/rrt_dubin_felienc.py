@@ -839,7 +839,7 @@ class StaticEnvironment:
             The created obstacle instance.
         """
         from shapely.geometry import Polygon
-        print("Adding obstacle with vertices:", vertices)
+        #print("Adding obstacle with vertices:", vertices)
         # Convert vertices to numpy array
         points = np.array(vertices)
         center = np.mean(points, axis=0)
@@ -1163,7 +1163,7 @@ class RRT:
                                                     self.nodes[node].time+i):
                         break
                 else:
-                    print(f"RRT: Added node at {sample} from {node}")
+                    #print(f"RRT: Added node at {sample} from {node}")
                     # Adding the node
                     # To compute the time, we use a constant speed of 1 m/s
                     # As the cost, we use the distance
@@ -1459,8 +1459,8 @@ class RRT:
             
 
 
-if __name__ == "__main__":
-    # # We initialize the planner with the turn radius and the desired distance between consecutive points
+def rrt_main(vertices):
+        # # We initialize the planner with the turn radius and the desired distance between consecutive points
     # local_planner = Dubins(radius=0.6, point_separation=.5)
 
     # # We generate two points, x, y, psi
@@ -1473,17 +1473,17 @@ if __name__ == "__main__":
 
     #----------------------------------------------------------------------------------
     # Create empty environment
-    env = StaticEnvironment(dimensions=(20, 20))
+    env_rrt = StaticEnvironment(dimensions=(20, 20))
 
     # Add obstacles at specific locations
     # env.add_obstacle_at(center=(5, 5), radius=1, nb_vertices=5)
     # env.add_obstacle_at(center=(10, 14), radius=1, nb_vertices=6)
     # env.add_obstacle_at(center=(15, 13), radius=1, nb_vertices=4)
 
-    env.add_obstacle_with_vertices([(5, 5), (8, 5), (8, 8), (5, 8)])
-    env.add_obstacle_with_vertices([(10, 10), (12, 10), (12, 12), (10, 12)])    
-    env.add_obstacle_with_vertices([(15, 15), (16, 15), (16, 16), (15, 16)])
-    env.add_obstacle_with_vertices([(15, 10), (17, 10), (17, 12), (15, 12)])
+    # print("vertices: " ,vertices)
+
+    for vertice in vertices:
+        env_rrt.add_obstacle_with_vertices(vertice)
 
     # Plot the environment - should now display!
     #env.plot(close=False, display=True)
@@ -1493,7 +1493,7 @@ if __name__ == "__main__":
     # We initialize the tree with the environment
 
 
-    rrt = RRT(env, precision=(1, 1, 0.5),local_planner=Dubins(radius=0.6, point_separation=0.1))
+    rrt = RRT(env_rrt, precision=(1, 1, 0.5),local_planner=Dubins(radius=0.6, point_separation=0.1))
 
     # We select two random points in the free space as a start and final node
     # start = env.random_free_space()
@@ -1509,18 +1509,17 @@ if __name__ == "__main__":
     # We run 100 iterations of growth
     rrt.run(end, nb_iteration=2000, goal_rate=0.08, metric='metric')
 
-    fig, ax = env.plot()
-    rrt.plot(fig=fig, ax=ax, nodes=True, file_name='rrt_path.png')
+    # fig, ax = env_rrt.plot()
+    # rrt.plot(fig=fig, ax=ax, nodes=True, file_name='rrt_path.png')
     best_path, best_edges = rrt.get_best_path_to_goal()
 
-    print("Best path waypoints:")
-    if best_path is not None:
-        for waypoint in best_path:
-            print(type(waypoint), waypoint)
-    else:
-        print("No path to goal found.")
+    # print("Best path waypoints:")
+    # if best_path is not None:
+    #     for waypoint in best_path:
+    #         print(type(waypoint), waypoint)
+    # else:
+    #     print("No path to goal found.")
 
     # Keep the plot open
-    plt.show()
-
-
+    # plt.show()
+    return best_path
