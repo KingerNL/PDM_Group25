@@ -1496,14 +1496,14 @@ def rrt_main(vertices):
     # We initialize the tree with the environment
 
 
-    rrt = RRT(env_rrt, precision=(1, 1, 0.5),local_planner=Dubins(radius=0.6, point_separation=0.1))
+    rrt = RRT(env_rrt, precision=(1, 1, 0.5),local_planner=Dubins(radius=1.5, point_separation=0.1))
 
     # We select two random points in the free space as a start and final node
     # start = env.random_free_space()
     # end = env.random_free_space()
 
     start = (0, 0, 0) # heading east
-    end = (14, 14, 3.141) # heading west
+    end = (14, 14, 0) # heading west
 
     # We initialize an empty tree
     rrt.set_start(start)

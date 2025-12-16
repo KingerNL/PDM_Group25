@@ -16,10 +16,10 @@ from source_files.rrt_dubin_felienc import rrt_main
 
 wheel_radius = 0.31265
 wheel_base = 0.494
-max_steer_abs = 0.6
+max_steer_abs = 0.8
 max_accel_abs = 50.0
-samples_per_dt = 50
-horizon_step_T = 25
+samples_per_dt = 25
+horizon_step_T = 50
 
 
 
@@ -49,7 +49,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
     ob, _ = env.reset()
 
     testArray = np.array(([                 #Test array (x, y, radius)
-                    [8.0, 8.0, 2]]))
+                    [8.0, 8.0, 1.5]]))
     
     _ , all_vertices = add_obstacleArray_to_env(env, testArray)
 
@@ -65,13 +65,15 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
 ### --------------------------------------------------MPPI-------------------------------------------------###
     # load and visualize reference path
     ref_path = np.array(best_path)
-    vel_column = np.full((ref_path.shape[0], 1), 2)  # shape (10, 1) filled with 5
+    vel_column = np.full((ref_path.shape[0], 1), 3)  # shape (10, 1) filled with 5
     ref_path = np.hstack((ref_path, vel_column))
 
     x = ref_path[:, 0]  # first column
     y = ref_path[:, 1]  # second column
 
     fig, ax = plt.subplots(figsize=(8, 6))
+    ax.set_xlim(-1, 15)
+    ax.set_ylim(-1, 15)
 
     # Plot path
     ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path')
@@ -107,8 +109,8 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
         param_lambda = 100.0,
         param_alpha = 0.98,
         sigma = np.array([[0.075, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([50.0, 50.0, 1.0, 20.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([50.0, 50.0, 1.0, 20.0]), # weight for [x, y, yaw, v]
+        stage_cost_weight = np.array([50.0, 50.0, 5.0, 30.0]), # weight for [x, y, yaw, v]
+        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 30.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = testArray, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 1.2, # safety margin for collision check
@@ -153,7 +155,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
     
     else:
         #if replay is true, it will load the file and play it in the env.
-        loaded = np.loadtxt("Data/MPPI_control_input.csv" , delimiter=",")
+        loaded = np.loadtxt("Data/MPPI_control_input_succes1.csv" , delimiter=",")
         for i in range(loaded.shape[0]):
             ob, *_ = env.step(loaded[i])
 
@@ -166,5 +168,5 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
 
 ###----------------------------------------------------MAIN-----------------------------------------------------------###
 if __name__ == "__main__":
-    run_prius_main(replay=True)
+    run_prius_main(replay=False)
 
