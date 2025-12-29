@@ -12,26 +12,27 @@ from source_files.obstacles_spec_generator import add_obstacleArray_to_env #Cust
 
 from source_files.rrt_dubin_felienc import rrt_main
 
-
-
+dt = 0.025
+scaling = 0.3
 wheel_radius = 0.31265
 wheel_base = 0.494
-max_steer_abs = 0.8
+max_steer_abs = 0.7
 max_accel_abs = 50.0
-samples_per_dt = 25
-horizon_step_T = 50
+samples_per_dt = 15
+horizon_step_T = 75
+ref_vel = 2
 
 
 
 
-def run_prius_main(replay = False, n_steps=10000, dt=0.01):
+def run_prius_main(replay = False, n_steps=10000, dt=dt):
 
 ###-------------------------------------------Creating the enviroment------------------------------------###
     robots = [
         BicycleModel(
             urdf='prius.urdf',
             mode="vel",
-            scaling=0.3,
+            scaling=scaling,
             wheel_radius=wheel_radius,
             wheel_distance=wheel_base,
             actuated_wheels=[
@@ -65,7 +66,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
 ### --------------------------------------------------MPPI-------------------------------------------------###
     # load and visualize reference path
     ref_path = np.array(best_path)
-    vel_column = np.full((ref_path.shape[0], 1), 3)  # shape (10, 1) filled with 5
+    vel_column = np.full((ref_path.shape[0], 1), ref_vel)  # shape (10, 1) filled with 5
     ref_path = np.hstack((ref_path, vel_column))
 
     x = ref_path[:, 0]  # first column
@@ -95,11 +96,11 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
     print("Plot saved as 'path_plot.png'")
 
     #variables
-    state = np.zeros(2)
+    action = np.zeros(2)  # [velocity, steering_angle]
 
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
-        wheel_base = wheel_base, # [m]
+        wheel_base = wheel_base * scaling, # [m]
         max_steer_abs = max_steer_abs, # [rad]
         max_accel_abs = max_accel_abs, # [m/s^2]
         ref_path = ref_path, # ndarray, size is <num_of_waypoints x 2>
@@ -113,7 +114,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
         terminal_cost_weight = np.array([50.0, 50.0, 5.0, 30.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = testArray, # [obs_x, obs_y, obs_radius]
-        collision_safety_margin_rate = 1.2, # safety margin for collision check
+        collision_safety_margin_rate = 0.1, # safety margin for collision check
     )
 
 ###-----------------------main simulation loop for creating control input or replaying----------------------###
@@ -126,6 +127,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
             pos = ob['robot_0']['joint_state']['position']
             x, y, yaw = pos
             forward_vel, side_vel = ob['robot_0']['joint_state']['forward_velocity']
+            print(ob['robot_0']['joint_state']['forward_velocity'])
             steering = ob['robot_0']['joint_state']['steering'][0]
 
             # State vector for MPPI
@@ -141,17 +143,22 @@ def run_prius_main(replay = False, n_steps=10000, dt=0.01):
                 break
 
             #create state for the env
-            state[0] = state[0] + optimal_input[1] * dt
-            state[1] = optimal_input[0]
+            current_vel = forward_vel
+            next_vel = current_vel + optimal_input[1] * dt
+
+            action[0] = next_vel
+            action[1] = optimal_input[0]
+            ob, *_ = env.step(action)
+
 
             #Put the state that is calcultated for the mppi into a csv file
             with open("Data/MPPI_control_input.csv" , "a" , newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(state)
+                writer.writerow(action)
 
             #print the state and send to the env
-            print(state)
-            ob, *_ = env.step(state)
+            # print(action)
+            ob, *_ = env.step(action)
     
     else:
         #if replay is true, it will load the file and play it in the env.
