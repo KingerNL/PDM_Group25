@@ -2,6 +2,7 @@ import numpy as np
 import csv
 from mpscenes.obstacles.cylinder_obstacle import CylinderObstacle
 import uuid
+import pybullet as p
 
 def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
                                         #Only can make circles (currently)
@@ -84,6 +85,26 @@ def generate_vertices_csv(vertices, filename="obstacle_enviroment.csv"):
 
 
     return
+
+def add_visual_marker(position, radius=0.2, rgba=(0.0, 1.0, 0.0, 0.6)):
+    """
+    Adds a visual-only sphere marker to the environment.
+    No collision, no physics interaction.
+    """
+    visual_shape_id = p.createVisualShape(
+        shapeType=p.GEOM_SPHERE,
+        radius=radius,
+        rgbaColor=rgba
+    )
+
+    body_id = p.createMultiBody(
+        baseMass=0,
+        baseVisualShapeIndex=visual_shape_id,
+        baseCollisionShapeIndex=-1,  #No collision
+        basePosition=position
+    )
+
+    return body_id
 
 def static_scenario_1():
     obstacles = [

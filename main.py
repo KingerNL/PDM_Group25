@@ -8,7 +8,7 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from source_files.MPPI import MPPIControllerForPathTracking
 
-from source_files.obstacles_spec_generator import add_obstacleArray_to_env #Custom script that has several scenarios containing objects to place in the enviroment
+from source_files.obstacles_spec_generator import add_obstacleArray_to_env, add_visual_marker #Custom script that has several scenarios containing objects to place in the enviroment
 
 from source_files.rrt_dubin_felienc import rrt_main
 
@@ -55,17 +55,31 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
     _ , all_vertices = add_obstacleArray_to_env(env, testArray)
 
 ###---------------------------------------------RRT with dublins path-------------------------------------###
-    
-
-
-
     best_path = rrt_main(all_vertices)
-    
+    ref_path = np.array(best_path)
 
+    step = 2
+    downsampled = ref_path[::step]
+
+    # Ensure first and last points are included
+    if not np.array_equal(downsampled[0], ref_path[0]):
+        downsampled = np.vstack([ref_path[0], downsampled])
+    if not np.array_equal(downsampled[-1], ref_path[-1]):
+        downsampled = np.vstack([downsampled, ref_path[-1]])
+
+    # Add markers
+    for i, (x, y, yaw) in enumerate(downsampled):
+        if i == 0:
+            color = (0.0, 1.0, 0.0, 1.0)  # first point = green
+        elif i == len(downsampled) - 1:
+            color = (1.0, 0.0, 0.0, 1.0)  # last point = red
+        else:
+            color = (0.0, 0.0, 1.0, 0.2)  # all others = blue transparent
+
+        add_visual_marker([x, y, 0.02], rgba=color)
 
 ### --------------------------------------------------MPPI-------------------------------------------------###
     # load and visualize reference path
-    ref_path = np.array(best_path)
     vel_column = np.full((ref_path.shape[0], 1), ref_vel)  # shape (10, 1) filled with 5
     ref_path = np.hstack((ref_path, vel_column))
 
@@ -127,7 +141,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
             pos = ob['robot_0']['joint_state']['position']
             x, y, yaw = pos
             forward_vel, side_vel = ob['robot_0']['joint_state']['forward_velocity']
-            print(ob['robot_0']['joint_state']['forward_velocity'])
+            # print(ob['robot_0']['joint_state']['forward_velocity'])
             steering = ob['robot_0']['joint_state']['steering'][0]
 
             # State vector for MPPI
@@ -150,6 +164,7 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
             action[1] = optimal_input[0]
             ob, *_ = env.step(action)
 
+            print(optimal_traj)
 
             #Put the state that is calcultated for the mppi into a csv file
             with open("Data/MPPI_control_input.csv" , "a" , newline="") as f:
@@ -176,4 +191,3 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
 ###----------------------------------------------------MAIN-----------------------------------------------------------###
 if __name__ == "__main__":
     run_prius_main(replay=False)
-
