@@ -4,7 +4,7 @@ from mpscenes.obstacles.cylinder_obstacle import CylinderObstacle
 import uuid
 import pybullet as p
 
-def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
+def add_obstacleArray_to_env(env, obstacleArray, offset):  #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
                                         #Only can make circles (currently)
     for obstacle in obstacleArray:
         x_centre = float(obstacle[0].tolist())
@@ -27,12 +27,12 @@ def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x,
             )
         env.add_obstacle(obstacle_obj)
 
-    vertices = make_circle_boundingbox(obstacleArray, 0)
+    vertices = make_circle_boundingbox(obstacleArray, offset)
     #generate_vertices_csv(vertices)
 
     return env, vertices
 
-def make_circle_boundingbox(obstacleArray, margin=0):
+def make_circle_boundingbox(obstacleArray, offset):
     """
     Given a numpy array of circles (x_center, y_center, radius),
     return the corners of the bounding boxes as a flat array with a margin.
@@ -50,10 +50,10 @@ def make_circle_boundingbox(obstacleArray, margin=0):
     y = obstacleArray[:, 1]
     r = obstacleArray[:, 2]
 
-    xmin = x - r    
-    xmax = x + r    
-    ymin = y - r    
-    ymax = y + r    
+    xmin = x - r - offset    
+    xmax = x + r - offset   
+    ymin = y - r - offset   
+    ymax = y + r - offset  
 
     all_vertices = []
 

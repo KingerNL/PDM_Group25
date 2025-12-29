@@ -12,20 +12,22 @@ from source_files.obstacles_spec_generator import add_obstacleArray_to_env, add_
 
 from source_files.rrt_dubin_felienc import rrt_main
 
-dt = 0.025
-scaling = 0.3
-wheel_radius = 0.31265
-wheel_base = 0.494
-max_steer_abs = 0.7
-max_accel_abs = 50.0
-samples_per_dt = 15
-horizon_step_T = 75
-ref_vel = 2
 
 
 
 
-def run_prius_main(replay = False, n_steps=10000, dt=dt):
+
+def run_prius_main(replay = False, n_steps=10000):
+    dt = 0.02
+    scaling = 0.3
+    wheel_radius = 0.31265
+    wheel_base = 0.494
+    max_steer_abs = 0.8
+    max_accel_abs = 50.0
+    samples_per_dt = 15
+    horizon_step_T = 50
+    ref_vel = 2.0
+    offset = -12.5
 
 ###-------------------------------------------Creating the enviroment------------------------------------###
     robots = [
@@ -42,72 +44,90 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
             steering_links=[
                 'front_right_steer_joint', 'front_left_steer_joint'
             ],
-            facing_direction='-x'
+            facing_direction='-x',
+            spawn_offset = [offset, offset, 0.05]
         )
     ]
     
     env = UrdfEnv(dt=dt, robots=robots, render=True)
     ob, _ = env.reset()
 
-    testArray = np.array(([                 #Test array (x, y, radius)
-                    [8.0, 8.0, 1.5]]))
+    TestObjects = np.array([                 #Test array (x, y, radius)
+                    [0.0, 0.0, 1.5]])
     
-    _ , all_vertices = add_obstacleArray_to_env(env, testArray)
+    
+    _ , all_vertices = add_obstacleArray_to_env(env, TestObjects, offset)
 
 ###---------------------------------------------RRT with dublins path-------------------------------------###
-    best_path = rrt_main(all_vertices)
-    ref_path = np.array(best_path)
+    if replay == False:
+        # Clear previous CSV
+        open("Data/ref_path.csv", "w").close()
 
-    step = 2
-    downsampled = ref_path[::step]
+        # Generate full path
+        print(all_vertices)
+        best_path = rrt_main(all_vertices , 2.0)
+        ref_path = np.array(best_path) + offset
+        
+        step = 3  # downsample factor
+        downsampled = ref_path[::step]
 
-    # Ensure first and last points are included
-    if not np.array_equal(downsampled[0], ref_path[0]):
-        downsampled = np.vstack([ref_path[0], downsampled])
-    if not np.array_equal(downsampled[-1], ref_path[-1]):
-        downsampled = np.vstack([downsampled, ref_path[-1]])
+        # Ensure first and last points are included
+        if not np.array_equal(downsampled[0], ref_path[0]):
+            downsampled = np.vstack([ref_path[0], downsampled])
+        if not np.array_equal(downsampled[-1], ref_path[-1]):
+            downsampled = np.vstack([downsampled, ref_path[-1]])
 
-    # Add markers
-    for i, (x, y, yaw) in enumerate(downsampled):
+        # Add velocity column to downsampled path
+        vel_column = np.full((downsampled.shape[0], 1), ref_vel)  # e.g., ref_vel = 5
+        ref_path = np.hstack((downsampled, vel_column))
+
+        np.savetxt("Data/ref_path.csv", ref_path, delimiter=",")
+    
+        x = ref_path[:, 0]  # first column
+        y = ref_path[:, 1]  # second column
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.set_xlim(-15, 15)
+        ax.set_ylim(-15, 15)
+
+        # Plot path
+        ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path')
+        # Add black circles
+        for i in range(len(TestObjects)):
+            circle = plt.Circle((TestObjects[i, 0], TestObjects[i, 1]), TestObjects[i, 2], color='black', fill=True)
+            ax.add_patch(circle)
+
+        # Labels, grid, and aspect ratio
+        ax.set_title("Path with Black Dots")
+        ax.set_xlabel("x coordinate")
+        ax.set_ylabel("y coordinate")
+        ax.grid(True)
+        ax.set_aspect('equal', 'box')
+
+        # Step 4: Save the plot to a file instead of showing it
+        plt.savefig("Data/path_plot.png", dpi=300)  # saves as PNG with 300 dpi
+        print("Plot saved as 'path_plot.png'")
+    else:
+        ref_path = np.loadtxt("Data/ref_path.csv", delimiter=",")
+
+
+    # Extract x, y, yaw for visualization
+    x = ref_path[:, 0]
+    y = ref_path[:, 1]
+    yaw = ref_path[:, 2]
+
+    # Plot markers with colors
+    for i, (xi, yi, yiw) in enumerate(zip(x, y, yaw)):
         if i == 0:
-            color = (0.0, 1.0, 0.0, 1.0)  # first point = green
-        elif i == len(downsampled) - 1:
-            color = (1.0, 0.0, 0.0, 1.0)  # last point = red
+            color = (0.0, 1.0, 0.0, 1.0)  # first = green
+        elif i == len(x) - 1:
+            color = (1.0, 0.0, 0.0, 1.0)  # last = red
         else:
-            color = (0.0, 0.0, 1.0, 0.2)  # all others = blue transparent
+            color = (0.0, 0.0, 1.0, 0.2)  # rest = blue transparent
+        add_visual_marker([xi, yi, 0.02], rgba=color)
 
-        add_visual_marker([x, y, 0.02], rgba=color)
 
 ### --------------------------------------------------MPPI-------------------------------------------------###
-    # load and visualize reference path
-    vel_column = np.full((ref_path.shape[0], 1), ref_vel)  # shape (10, 1) filled with 5
-    ref_path = np.hstack((ref_path, vel_column))
-
-    x = ref_path[:, 0]  # first column
-    y = ref_path[:, 1]  # second column
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.set_xlim(-1, 15)
-    ax.set_ylim(-1, 15)
-
-    # Plot path
-    ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path')
-
-    # Add black circles
-    for i in range(len(testArray)):
-        circle = plt.Circle((testArray[i, 0], testArray[i, 1]), testArray[i, 2], color='black', fill=True)
-        ax.add_patch(circle)
-
-    # Labels, grid, and aspect ratio
-    ax.set_title("Path with Black Dots")
-    ax.set_xlabel("x coordinate")
-    ax.set_ylabel("y coordinate")
-    ax.grid(True)
-    ax.set_aspect('equal', 'box')
-
-    # Step 4: Save the plot to a file instead of showing it
-    plt.savefig("Data/path_plot.png", dpi=300)  # saves as PNG with 300 dpi
-    print("Plot saved as 'path_plot.png'")
 
     #variables
     action = np.zeros(2)  # [velocity, steering_angle]
@@ -124,11 +144,11 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
         param_lambda = 100.0,
         param_alpha = 0.98,
         sigma = np.array([[0.075, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([50.0, 50.0, 5.0, 30.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 30.0]), # weight for [x, y, yaw, v]
+        stage_cost_weight = np.array([50.0, 50.0, 5.0, 20.0]), # weight for [x, y, yaw, v]
+        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 20.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
-        obstacle_circles = testArray, # [obs_x, obs_y, obs_radius]
-        collision_safety_margin_rate = 0.1, # safety margin for collision check
+        obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
+        collision_safety_margin_rate = 1.2 * scaling, # safety margin for collision check
     )
 
 ###-----------------------main simulation loop for creating control input or replaying----------------------###
@@ -164,7 +184,8 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
             action[1] = optimal_input[0]
             ob, *_ = env.step(action)
 
-            print(optimal_traj)
+            rounded_traj = np.round(optimal_traj, 2)
+            print(rounded_traj)
 
             #Put the state that is calcultated for the mppi into a csv file
             with open("Data/MPPI_control_input.csv" , "a" , newline="") as f:
@@ -172,12 +193,12 @@ def run_prius_main(replay = False, n_steps=10000, dt=dt):
                 writer.writerow(action)
 
             #print the state and send to the env
-            # print(action)
+            print("action vel= ", action[0] , " and steering= " , action[1])
             ob, *_ = env.step(action)
     
     else:
         #if replay is true, it will load the file and play it in the env.
-        loaded = np.loadtxt("Data/MPPI_control_input_succes1.csv" , delimiter=",")
+        loaded = np.loadtxt("Data/MPPI_control_input.csv" , delimiter=",")
         for i in range(loaded.shape[0]):
             ob, *_ = env.step(loaded[i])
 

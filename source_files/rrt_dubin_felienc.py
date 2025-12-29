@@ -1459,7 +1459,7 @@ class RRT:
             
 
 
-def rrt_main(vertices):
+def rrt_main(vertices, radius_dubins):
         # # We initialize the planner with the turn radius and the desired distance between consecutive points
     # local_planner = Dubins(radius=0.6, point_separation=.5)
 
@@ -1473,7 +1473,7 @@ def rrt_main(vertices):
 
     #----------------------------------------------------------------------------------
     # Create empty environment
-    env_rrt = StaticEnvironment(dimensions=(15, 15))
+    env_rrt = StaticEnvironment(dimensions=(25, 25))
 
     # Add obstacles at specific locations
     # env.add_obstacle_at(center=(5, 5), radius=1, nb_vertices=5)
@@ -1496,14 +1496,15 @@ def rrt_main(vertices):
     # We initialize the tree with the environment
 
 
-    rrt = RRT(env_rrt, precision=(1, 1, 0.5),local_planner=Dubins(radius=1.5, point_separation=0.1))
+    rrt = RRT(env_rrt, precision=(1, 1, 0.5),local_planner=Dubins(radius=radius_dubins, point_separation=0.1))
 
     # We select two random points in the free space as a start and final node
     # start = env.random_free_space()
     # end = env.random_free_space()
 
+
     start = (0, 0, 0) # heading east
-    end = (14, 14, 0) # heading west
+    end = (25, 25, 0) # heading west
 
     # We initialize an empty tree
     rrt.set_start(start)
