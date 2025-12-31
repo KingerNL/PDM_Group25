@@ -15,7 +15,7 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
             scaling=0.3,
             wheel_radius=0.31265,
             wheel_distance=0.494,
-            spawn_offset=np.array([-15, -15, 0.05]),
+            spawn_offset=np.array([0, 0, 0.05]),        #Can also be any value for x and y between -15 and +15
             actuated_wheels=[
                 'front_right_wheel_joint', 'front_left_wheel_joint',
                 'rear_right_wheel_joint', 'rear_left_wheel_joint'
@@ -36,12 +36,14 @@ def run_prius_keyboard(n_steps=10000, dt=0.01):
     start_position = [start_x, start_y, 0.05]
     create_enviroment.add_visual_marker(start_position, rgba=(1.0, 0.0, 0.0, 0.6))   #Create non-colliding marker at start
     
-    testArray = np.array(([                 #Test array of obstacles to be placed (x, y, radius)
-                    [2.0, 2.0, 1.0],
-                    [-4.0, -4.0, 1.0]]))
-    print(testArray.shape)
-    create_enviroment.add_obstacleArray_to_env(env, testArray)
-    
+    #testArray = np.array(([                 #Test array of obstacles to be placed (x, y, radius)
+    #                [2.0, 2.0, 1.0],
+    #                [-4.0, -4.0, 1.0]]))
+    #create_enviroment.add_obstacleArray_to_env(env, testArray)
+
+    obstacle_array = create_enviroment.generate_random_obstacle_array(num_points=50, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2])
+    create_enviroment.add_obstacleArray_to_env(env, obstacle_array)
+
     goal_position = [1.0, 1.0, 0.05]
     create_enviroment.add_visual_marker(goal_position)   #Create non-colliding marker at goal
 

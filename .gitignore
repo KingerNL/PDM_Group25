@@ -1,2 +1,4 @@
 __pycache__
+.vscode
 Data/MPPI_control_input.csv
+create_enviroment/obstacle_enviroment.csv
