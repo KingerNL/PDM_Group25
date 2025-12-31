@@ -4,14 +4,26 @@ from mpscenes.obstacles.cylinder_obstacle import CylinderObstacle
 import uuid
 import pybullet as p
 
-def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
-                                        #Only can make circles (currently)
+def add_obstacleArray_to_env(env, obstacleArray, debug=False):  #Gets 2D numpy array with: x, y and radius for each obstacle that should be made
+                                                                #Only can make cylinders (currently)
+    """
+    Convert an array of circle coordinates (x, y, radius) to cylindrical obstacles to be placed into the enviroment of the robot
+    Will also call the circle_boundigbox function and generate_vertices_csv function in order to
+    make bounding boxes of the obstacles and save the coordinates of the box into an csv file
+
+    Input:  env, UrdfEnv class: Instance of the UrdfEnv class which holds the initialized enviroment in which to place the obstacles
+            obstacleArray, Numpy array: (n, 3) with (x, y, radius) coordinates of circles
+
+    Output: env, UrdfEnv class: Updated instance of the enviroment with cylindrical objects placed
+    """
     for obstacle in obstacleArray:
         x_centre = float(obstacle[0].tolist())
         y_centre = float(obstacle[1].tolist())
         radius = float(obstacle[2].tolist())
-        print("type is: ", type(list((x_centre, y_centre, radius))))
-        print("coordinates: ", x_centre, y_centre, radius)
+
+        if debug == True:
+            print("type is: ", type(list((x_centre, y_centre, radius))))
+            print("coordinates: ", x_centre, y_centre, radius)
 
         obstacle_spec = ({
             "type": "cylinder",
@@ -32,19 +44,16 @@ def add_obstacleArray_to_env(env, obstacleArray):  #Gets 2D numpy array with: x,
 
     return env
 
-def make_circle_boundingbox(obstacleArray, margin=0):
+def make_circle_boundingbox(obstacleArray, margin=0, debug=False):
     """
-    Given a numpy array of circles (x_center, y_center, radius),
-    return the corners of the bounding boxes as a flat array with a margin.
-    
-    Parameters:
-        circles (np.ndarray): shape (n, 3), each row [x, y, r]
-        margin (float): extra distance to extend the bounding box beyond the circle
-    
-    Returns:
-        np.ndarray: shape (n, 8), corners for each circle
-                    order: [top_left_x, top_left_y, top_right_x, top_right_y,
-                            bottom_right_x, bottom_right_y, bottom_left_x, bottom_left_y]
+    For array of coordinates of circles (x, y, radius)
+    return corners of a square bounding box that fits the circle, with some margin if requested.
+
+    Input:  Obstacle array, Numpy array: (n, 3) with (x, y, radius) coordinates of circles
+            margin (optional), float: extra distance to keep inbetween boundig box and circle
+
+    Output: vertices, Numpy array: (n, 8) with (Xmin, Ymin, Xmin, Ymax, Xmax, Ymax, Xmax, Ymin)
+            corresponding to the (x, y) coordinates of each corner node
     """
     x = obstacleArray[:, 0]
     y = obstacleArray[:, 1]
@@ -53,25 +62,25 @@ def make_circle_boundingbox(obstacleArray, margin=0):
     xmin = x - r    
     xmax = x + r    
     ymin = y - r    
-    ymax = y + r    
-
-    print("top left (xmin) node x: ", xmin, "top left(ymin) node y: ", ymin)
-    print("top right(xmin) node x: ", xmin, "top right(ymax) node y: ", ymax)
-    print("bottom_right(xmax) node x: ", xmax, "bottom_right(ymax) node y: ", ymax)
-    print("bottom_left(xman) node x: ", xmax, "bottom_left(ymin) node y: ", ymin)
+    ymax = y + r
 
     vertices = np.column_stack([
         xmin, ymin,     # top-left
         xmax, ymin,     # bottom-left
         xmax, ymax,     # bottom-right
         xmin, ymax      # top-right
-    ])
+    ])    
 
-    print(vertices)
+    if debug == True:
+        print("top left (xmin) node x: ", xmin, "top left(ymin) node y: ", ymin)
+        print("top right(xmin) node x: ", xmin, "top right(ymax) node y: ", ymax)
+        print("bottom_right(xmax) node x: ", xmax, "bottom_right(ymax) node y: ", ymax)
+        print("bottom_left(xman) node x: ", xmax, "bottom_left(ymin) node y: ", ymin)
+        print(vertices)
+    
     return vertices
 
-def generate_vertices_csv(vertices, filename="obstacle_enviroment.csv"):
-    print("making csv file")
+def generate_vertices_csv(vertices, filename="create_enviroment/obstacle_enviroment.csv"):
 
     header = [
         "x1","y1","x2","y2","x3","y3","x4","y4"
