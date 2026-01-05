@@ -108,7 +108,7 @@ def run_prius_main(replay = False, n_steps=10000):
         plt.savefig("Data/path_plot.png", dpi=300)  # saves as PNG with 300 dpi
         print("Plot saved as 'path_plot.png'")
     else:
-        ref_path = np.loadtxt("Data/ref_path.csv", delimiter=",")
+        ref_path = np.loadtxt("Data/ref_path_succes.csv", delimiter=",")
 
 
     # Extract x, y, yaw for visualization
@@ -131,6 +131,7 @@ def run_prius_main(replay = False, n_steps=10000):
 
     #variables
     action = np.zeros(2)  # [velocity, steering_angle]
+    body_ids = []
 
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
@@ -155,7 +156,7 @@ def run_prius_main(replay = False, n_steps=10000):
     if (replay == False):
         #delete the old replay data.
         open("Data/MPPI_control_input.csv" , "w").close()
-        body_ids = []
+
         for _ in range(n_steps):
             #get the current state from the env
             pos = ob['robot_0']['joint_state']['position']
@@ -179,8 +180,6 @@ def run_prius_main(replay = False, n_steps=10000):
             #create state for the env
             action[0] = optimal_input[1]
             action[1] = optimal_input[0]
-
-
 
             rounded_traj = np.round(optimal_traj, 2)
             last_point = rounded_traj[-1]
@@ -208,9 +207,10 @@ def run_prius_main(replay = False, n_steps=10000):
     
     else:
         #if replay is true, it will load the file and play it in the env.
-        loaded = np.loadtxt("Data/MPPI_control_input.csv" , delimiter=",")
-        for i in range(loaded.shape[0]):
-            ob, *_ = env.step(loaded[i])
+
+        loaded_mppi = np.loadtxt("Data/MPPI_control_input_succes.csv" , delimiter=",")
+        for i in range(loaded_mppi.shape[0]):        
+            ob, *_ = env.step(loaded_mppi[i])
 
 
     #sleep before closing the env
