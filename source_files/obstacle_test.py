@@ -4,7 +4,7 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from keyboard_control import KeyboardController
 
-import create_enviroment.create_enviroment as create_enviroment        #Custom script that places functions inside the enviroment
+import create_enviroment as create_enviroment        #Custom script that places functions inside the enviroment
 
 def run_prius_keyboard(n_steps=10000, dt=0.01):
 
