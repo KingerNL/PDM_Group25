@@ -8,7 +8,7 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from source_files.MPPI import MPPIControllerForPathTracking
 
-from source_files.obstacles_spec_generator import add_obstacleArray_to_env, add_visual_marker #Custom script that has several scenarios containing objects to place in the enviroment
+from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker #Custom script that has several scenarios containing objects to place in the enviroment
 
 from source_files.rrt_dubin_felienc import rrt_main
 
