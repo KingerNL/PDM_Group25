@@ -14,14 +14,14 @@ from source_files.rrt_dubin_felienc import rrt_main
 
 
 def run_prius_main(replay = False, n_steps=10000):
-    dt = 0.025
+    dt = 0.05
     scaling = 0.3
     wheel_radius = 0.31265
     wheel_base = 0.494
     max_steer_abs = 0.8
     max_accel_abs = 50.0
-    samples_per_dt = 25
-    horizon_step_T = 40
+    samples_per_dt = 20
+    horizon_step_T = 25
     ref_vel = 2.5
     offset = -12.5
 
@@ -29,7 +29,7 @@ def run_prius_main(replay = False, n_steps=10000):
     robots = [
         BicycleModel(
             urdf='prius.urdf',
-            mode="vel",
+            mode="acc",
             scaling=scaling,
             wheel_radius=wheel_radius,
             wheel_distance=wheel_base,
@@ -134,7 +134,7 @@ def run_prius_main(replay = False, n_steps=10000):
 
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
-        wheel_base = wheel_base * scaling, # [m]
+        wheel_base = wheel_base, # [m]
         max_steer_abs = max_steer_abs, # [rad]
         max_accel_abs = max_accel_abs, # [m/s^2]
         ref_path = ref_path, # ndarray, size is <num_of_waypoints x 2>
@@ -143,9 +143,9 @@ def run_prius_main(replay = False, n_steps=10000):
         param_exploration = 0.05,
         param_lambda = 100.0,
         param_alpha = 0.98,
-        sigma = np.array([[0.125, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([100.0, 100.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([100.0, 100.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
+        sigma = np.array([[0.25, 0.0], [0.0, 2.0]]),
+        stage_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
+        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 1.5 * scaling, # safety margin for collision check
@@ -177,10 +177,7 @@ def run_prius_main(replay = False, n_steps=10000):
                 break
 
             #create state for the env
-            current_vel = forward_vel
-            next_vel = current_vel + optimal_input[1] * dt
-
-            action[0] = next_vel
+            action[0] = optimal_input[1]
             action[1] = optimal_input[0]
 
 
@@ -192,7 +189,7 @@ def run_prius_main(replay = False, n_steps=10000):
                 remove_visual_marker(i)
             body_ids.clear()
 
-            for point in rounded_traj[10::10]:
+            for point in rounded_traj[10::13]:
                 body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.1, rgba=(0, 0, 0, 0.5))
                 body_ids.append(body_id)
 
@@ -206,7 +203,7 @@ def run_prius_main(replay = False, n_steps=10000):
                 writer.writerow(action)
 
             #print the state and send to the env
-            print("action vel= ", np.round(action[0],3) , " and steering= " , np.round(action[1],3))
+            print("action acc= ", np.round(action[0],3) , " and steering= " , np.round(action[1],3))
             ob, *_ = env.step(action)
     
     else:
@@ -224,4 +221,4 @@ def run_prius_main(replay = False, n_steps=10000):
 
 ###----------------------------------------------------MAIN-----------------------------------------------------------###
 if __name__ == "__main__":
-    run_prius_main(replay=False)
+    run_prius_main(replay=True)
