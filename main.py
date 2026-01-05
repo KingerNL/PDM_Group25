@@ -8,7 +8,7 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from source_files.MPPI import MPPIControllerForPathTracking
 
-from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker , remove_visual_marker #Custom script that has several scenarios containing objects to place in the enviroment
+from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker , remove_visual_marker, generate_random_obstacle_array #Custom script that has several scenarios containing objects to place in the enviroment
 
 from source_files.rrt_dubin_felienc import rrt_main
 
@@ -48,13 +48,21 @@ def run_prius_main(replay = False, n_steps=10000):
     env = UrdfEnv(dt=dt, robots=robots, render=True)
     ob, _ = env.reset()
 
-    TestObjects = np.array([                 #Test array (x, y, radius)
-                    [0.0, 0.0, 4.0],
-                    [0.0, 12.5, 2.5],
-                    [0.0, -12.5, 2.5],
-                    [-12.5, 0.0, 2.5],
-                    [12.5, 0.0, 2.5]
-                    ])
+    start_x = ob['robot_0']['joint_state']['position'][0]    #Get current/start position
+    start_y = ob['robot_0']['joint_state']['position'][1]    #Get current/start position
+    start_position = [start_x, start_y, 0.05]
+    goal_position = [25+offset, 25+offset, 0]
+
+    TestObjects = generate_random_obstacle_array(num_points=20, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
+    #add_obstacleArray_to_env(env, TestObjects)
+
+    #TestObjects = np.array([                 #Test array (x, y, radius)
+    #                [0.0, 0.0, 4.0],
+    #                [0.0, 12.5, 2.5],
+    #                [0.0, -12.5, 2.5],
+    #                [-12.5, 0.0, 2.5],
+    #                [12.5, 0.0, 2.5]
+    #                ])
     
     
     _ , all_vertices = add_obstacleArray_to_env(env, TestObjects, offset)
@@ -65,7 +73,7 @@ def run_prius_main(replay = False, n_steps=10000):
         open("Data/ref_path.csv", "w").close()
 
         # Generate full path
-        best_path = rrt_main(all_vertices , 2.5)
+        best_path = rrt_main(all_vertices , 2.2)
         ref_path = np.array(best_path) + offset
         
         step = 4  # downsample factor
@@ -221,4 +229,4 @@ def run_prius_main(replay = False, n_steps=10000):
 
 ###----------------------------------------------------MAIN-----------------------------------------------------------###
 if __name__ == "__main__":
-    run_prius_main(replay=True)
+    run_prius_main(replay=False)

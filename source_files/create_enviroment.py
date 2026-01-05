@@ -136,7 +136,7 @@ def remove_visual_marker(body_id):
     p.removeBody(body_id)
     return
 
-def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, robot_tol=0.5):
+def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, goal_position, robot_tol=0.5):
     """
     Generates a certain number of random obstacle cooridnates and radii
     Only valid objects are saved, 
@@ -160,7 +160,7 @@ def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, 
     #Defining the square boundaries, default -15 to +15 in x and y
     limit = (-15.0, 15.0)
     
-    np.random.seed(1) #Set seed for consistent output when replying
+    np.random.seed(2) #Set seed for consistent output when replying
 
     while len(obstacle_array) < num_points:
         # Generate random x and y between -15 and 15
@@ -172,6 +172,11 @@ def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, 
 
         #Check distance to robot starting position
         dist_to_robot = np.sqrt((x - robot_pos[0])**2 + (y - robot_pos[1])**2)
+        if (dist_to_robot - radius) < robot_tol:
+            is_safe = False
+        
+        #Check distance to robot goal position
+        dist_to_robot = np.sqrt((x - goal_position[0])**2 + (y - goal_position[1])**2)
         if (dist_to_robot - radius) < robot_tol:
             is_safe = False
             
