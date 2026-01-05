@@ -43,8 +43,8 @@ def add_obstacleArray_to_env(env, obstacleArray, offset, filename="", debug=Fals
     vertices = make_circle_boundingbox(obstacleArray, offset)
     #generate_vertices_csv(vertices)
 
-    if filename != "": generate_vertices_csv(vertices, filename=filename)
-    else: generate_vertices_csv(vertices)
+    # if filename != "": generate_vertices_csv(vertices, filename=filename)
+    # else: generate_vertices_csv(vertices)
 
     return env, vertices
 
