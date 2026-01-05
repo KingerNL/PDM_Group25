@@ -8,13 +8,9 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from source_files.MPPI import MPPIControllerForPathTracking
 
-from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker #Custom script that has several scenarios containing objects to place in the enviroment
+from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker , remove_visual_marker #Custom script that has several scenarios containing objects to place in the enviroment
 
 from source_files.rrt_dubin_felienc import rrt_main
-
-
-
-
 
 
 def run_prius_main(replay = False, n_steps=10000):
@@ -24,7 +20,7 @@ def run_prius_main(replay = False, n_steps=10000):
     wheel_base = 0.494
     max_steer_abs = 0.8
     max_accel_abs = 50.0
-    samples_per_dt = 20
+    samples_per_dt = 25
     horizon_step_T = 40
     ref_vel = 2.5
     offset = -12.5
@@ -128,7 +124,7 @@ def run_prius_main(replay = False, n_steps=10000):
             color = (1.0, 0.0, 0.0, 1.0)  # last = red
         else:
             color = (0.0, 0.0, 1.0, 0.4)  # rest = blue transparent
-        add_visual_marker([xi, yi, 0.02], rgba=color)
+        add_visual_marker([xi, yi, 0.02], rgba= color)
 
 
 ### --------------------------------------------------MPPI-------------------------------------------------###
@@ -147,9 +143,9 @@ def run_prius_main(replay = False, n_steps=10000):
         param_exploration = 0.05,
         param_lambda = 100.0,
         param_alpha = 0.98,
-        sigma = np.array([[0.075, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([55.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([55.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
+        sigma = np.array([[0.125, 0.0], [0.0, 2.0]]),
+        stage_cost_weight = np.array([100.0, 100.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
+        terminal_cost_weight = np.array([100.0, 100.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 1.5 * scaling, # safety margin for collision check
@@ -159,7 +155,7 @@ def run_prius_main(replay = False, n_steps=10000):
     if (replay == False):
         #delete the old replay data.
         open("Data/MPPI_control_input.csv" , "w").close()
-        
+        body_ids = []
         for _ in range(n_steps):
             #get the current state from the env
             pos = ob['robot_0']['joint_state']['position']
@@ -186,10 +182,23 @@ def run_prius_main(replay = False, n_steps=10000):
 
             action[0] = next_vel
             action[1] = optimal_input[0]
-            ob, *_ = env.step(action)
 
-            # rounded_traj = np.round(optimal_traj, 2)
-            # print(rounded_traj)
+
+
+            rounded_traj = np.round(optimal_traj, 2)
+            last_point = rounded_traj[-1]
+            
+            for i in body_ids:
+                remove_visual_marker(i)
+            body_ids.clear()
+
+            for point in rounded_traj[10::10]:
+                body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.1, rgba=(0, 0, 0, 0.5))
+                body_ids.append(body_id)
+
+            body_id = add_visual_marker([last_point[0], last_point[1], 0.02], radius=0.1, rgba=(1.0, 0, 0, 0.7))
+            body_ids.append(body_id)
+
 
             #Put the state that is calcultated for the mppi into a csv file
             with open("Data/MPPI_control_input.csv" , "a" , newline="") as f:

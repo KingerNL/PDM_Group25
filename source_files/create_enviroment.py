@@ -132,6 +132,10 @@ def add_visual_marker(position, radius=0.2, rgba=(0.0, 1.0, 0.0, 0.6)):
     )
     return body_id
 
+def remove_visual_marker(body_id):
+    p.removeBody(body_id)
+    return
+
 def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, robot_tol=0.5):
     """
     Generates a certain number of random obstacle cooridnates and radii
