@@ -215,4 +215,4 @@ def run_prius_main(replay = False, n_steps=10000):
 
 ###----------------------------------------------------MAIN-----------------------------------------------------------###
 if __name__ == "__main__":
-    run_prius_main(replay=True)
+    run_prius_main(replay=False)
