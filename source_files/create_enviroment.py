@@ -209,7 +209,7 @@ def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, 
             
     return np.array(obstacle_array)
 
-def add_unkown_obstacle_to_array(obstacleArray, env, referencePath, offset, unknown_amount=3):
+def add_unkown_obstacle_to_array(obstacleArray, env, referencePath, offset, unknown_amount=1):
     """
     For a given position array/list (x, y, z), radius and rgba color value place a 
     non-coliding marker into the enviroment for visualization purposes, for example showing goal location

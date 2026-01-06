@@ -3,5 +3,6 @@ Data/MPPI_control_input.csv
 Data/path_plot.png
 Data/path_plot_walked.png
 Data/ref_path.csv
+Data/obstacles_used.csv
 create_enviroment/obstacle_enviroment.csv
 

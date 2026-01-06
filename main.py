@@ -18,7 +18,7 @@ select_scenario = 4             #Select which scenario to run
                                 #Scenario 2: 
                                 #Scenario 3:
 
-min_dist = 1.0                    #Minimum distance to keep between generated obstacles
+min_dist = 1.5                  #Minimum distance to keep between generated obstacles
 max_radius = 3.0                #Maximum radius of obstacles to be generated
 
 def run_prius_main(replay = False, n_steps=10000):
@@ -74,7 +74,7 @@ def run_prius_main(replay = False, n_steps=10000):
         obstacleArray = generate_random_obstacle_array(num_points=1, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=2)
     # Scenario 4: 12 obstacles with 2 unknown obstacles
     elif select_scenario == 4:
-        obstacleArray = generate_random_obstacle_array(num_points=12, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=13)
+        obstacleArray = generate_random_obstacle_array(num_points=12, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=17) #17 118
 ###---------------------------------------------RRT with dublins path-------------------------------------###
     if replay == False:
         _ , all_vertices = add_obstacleArray_to_env(env, obstacleArray, offset)
