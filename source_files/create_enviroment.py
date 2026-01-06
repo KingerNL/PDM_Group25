@@ -136,7 +136,7 @@ def remove_visual_marker(body_id):
     p.removeBody(body_id)
     return
 
-def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, goal_position, robot_tol=0.5):
+def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, goal_position, robot_tol=1.0):
     """
     Generates a certain number of random obstacle cooridnates and radii
     Only valid objects are saved, 

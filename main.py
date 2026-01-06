@@ -53,7 +53,7 @@ def run_prius_main(replay = False, n_steps=10000):
     start_position = [start_x, start_y, 0.05]
     goal_position = [25+offset, 25+offset, 0]
 
-    TestObjects = generate_random_obstacle_array(num_points=5, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
+    TestObjects = generate_random_obstacle_array(num_points=2, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
     
 
     #TestObjects = np.array([                 #Test array (x, y, radius)
@@ -77,11 +77,14 @@ def run_prius_main(replay = False, n_steps=10000):
         best_path = rrt_main(all_vertices , 2.2)
         ref_path = np.array(best_path) + offset
 
-        #for random point
+        #Create object
         mid_idx = len(ref_path) // 2
         x_mid, y_mid, _ = ref_path[mid_idx]
-        extra_object = np.array([x_mid , y_mid , 1])
+        extra_object = np.array([[x_mid , y_mid , 1]])
         add_obstacleArray_to_env(env, extra_object, offset)
+
+        #add to objects
+        TestObjects = np.vstack((TestObjects, extra_object))
         
         step = 4  # downsample factor
         downsampled = ref_path[::step]
