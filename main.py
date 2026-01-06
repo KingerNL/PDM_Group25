@@ -54,7 +54,7 @@ def run_prius_main(replay = False, n_steps=10000):
     goal_position = [25+offset, 25+offset, 0]
 
     TestObjects = generate_random_obstacle_array(num_points=20, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
-    #add_obstacleArray_to_env(env, TestObjects)
+    
 
     #TestObjects = np.array([                 #Test array (x, y, radius)
     #                [0.0, 0.0, 4.0],
@@ -66,7 +66,7 @@ def run_prius_main(replay = False, n_steps=10000):
     
     
     _ , all_vertices = add_obstacleArray_to_env(env, TestObjects, offset)
-    
+
 
 ###---------------------------------------------RRT with dublins path-------------------------------------###
     if replay == False:
