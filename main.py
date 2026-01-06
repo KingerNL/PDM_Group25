@@ -19,7 +19,7 @@ def run_prius_main(replay = False, n_steps=10000):
     wheel_radius = 0.31265
     wheel_base = 0.494
     max_steer_abs = 0.8
-    max_accel_abs = 50.0
+    max_accel_abs = 2
     samples_per_dt = 20
     horizon_step_T = 25
     ref_vel = 2.5
@@ -84,7 +84,7 @@ def run_prius_main(replay = False, n_steps=10000):
         #Create object
         mid_idx = len(ref_path) // 2
         x_mid, y_mid, _ = ref_path[mid_idx]
-        extra_object = np.array([[x_mid , y_mid , 1]])
+        extra_object = np.array([[x_mid , y_mid , 1.0]])
         add_obstacleArray_to_env(env, extra_object, offset)
 
         #add to objects
@@ -169,8 +169,8 @@ def run_prius_main(replay = False, n_steps=10000):
         param_lambda = 100.0,
         param_alpha = 0.98,
         sigma = np.array([[0.25, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
+        stage_cost_weight = np.array([50.0, 50.0, 5.0, 12.5]), # weight for [x, y, yaw, v]
+        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 12.5]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 0.4, # safety margin for collision check
