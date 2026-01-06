@@ -19,11 +19,7 @@ def run_prius_main(replay = False, n_steps=10000):
     wheel_radius = 0.31265
     wheel_base = 0.494
     max_steer_abs = 0.8
-<<<<<<< HEAD
-    max_accel_abs = 2
-=======
     max_accel_abs = 2.5
->>>>>>> 5_branch_main
     samples_per_dt = 20
     horizon_step_T = 25
     ref_vel = 2.5
@@ -88,11 +84,7 @@ def run_prius_main(replay = False, n_steps=10000):
         #Create object
         mid_idx = len(ref_path) // 2
         x_mid, y_mid, _ = ref_path[mid_idx]
-<<<<<<< HEAD
-        extra_object = np.array([[x_mid , y_mid , 1.0]])
-=======
         extra_object = np.array([[x_mid , y_mid , 0.5]])
->>>>>>> 5_branch_main
         add_obstacleArray_to_env(env, extra_object, offset)
 
         #add to objects
