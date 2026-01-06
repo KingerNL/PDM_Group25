@@ -13,6 +13,7 @@ def add_obstacleArray_to_env(env, obstacleArray, offset, filename="", debug=Fals
 
     Input:  env, UrdfEnv class: Instance of the UrdfEnv class which holds the initialized enviroment in which to place the obstacles
             obstacleArray, Numpy array: (n, 3) with (x, y, radius) coordinates of circles
+            offset, float: offset to re-adjust for gymenvs enviroment
             filename (optional), string: Path at which to save the generated .csv file
 
     Output: env, UrdfEnv class: Updated instance of the enviroment with cylindrical objects placed
@@ -49,14 +50,14 @@ def add_obstacleArray_to_env(env, obstacleArray, offset, filename="", debug=Fals
     return env, vertices
 
 
-def make_circle_boundingbox(obstacleArray, offset):
+def make_circle_boundingbox(obstacleArray, offset=0.2):
 
     """
     For array of coordinates of circles (x, y, radius)
     return corners of a square bounding box that fits the circle, with some margin if requested.
 
     Input:  Obstacle array, Numpy array: (n, 3) with (x, y, radius) coordinates of circles
-            margin (optional), float: extra distance to keep inbetween boundig box and circle
+            offset, float: offset to re-adjust for gymenvs enviroment
 
     Output: vertices, Numpy array: (n, 8) with (Xmin, Ymin, Xmin, Ymax, Xmax, Ymax, Xmax, Ymin)
             corresponding to the (x, y) coordinates of each corner node
@@ -133,24 +134,33 @@ def add_visual_marker(position, radius=0.2, rgba=(0.0, 1.0, 0.0, 0.6)):
     return body_id
 
 def remove_visual_marker(body_id):
+    """
+    Function to remove a visual marker based on its Pybullet body_id
+
+    Input:  body_id, pybullet ID: ID of the visual object that was palced
+
+    Output: None
+    """
     p.removeBody(body_id)
     return
 
-def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, goal_position, robot_tol=1.0):
+def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, goal_position, robot_tol=2.0, seed_id=1):
     """
     Generates a certain number of random obstacle cooridnates and radii
     Only valid objects are saved, 
     Object are valid if:
     1. Are not near the robot starting position
     2. Are some distance apart from eachother
-    3. Are withing the enviroment boundaries
+    3. Are not near the robot goal position
+    4. Are withing the enviroment boundaries
     If no solution can be found in some amount of tries, function will return the valid objects (which will be less than num_points)
 
     Input:  num_points, int: Amount of obstacle coordinates to generate
             min_dist, float: Minimum distance between objects
-            max_radius, float: Maximum radius of object to be generated (minimum hardcoded to 1.0)
+            max_radius, float: Maximum radius of object to be generated (minimum hardcoded to be 1.0)
             robot_pos, list of float: (x,y) starting position of robot
             robot_tol (optional), float: Distance to keep between starting position and obstacles
+            seed_id (optional), int: Numpy random seed to set for obstacle generation
 
     Output: obstacle_array, numpy array (num_points, 3): Coordinates and radii of randomly generated valid obstacles
     """
@@ -160,7 +170,7 @@ def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, 
     #Defining the square boundaries, default -15 to +15 in x and y
     limit = (-15.0, 15.0)
     
-    np.random.seed(2) #Set seed for consistent output when replying
+    np.random.seed(seed_id) #Set seed for consistent output when replying
 
     while len(obstacle_array) < num_points:
         # Generate random x and y between -15 and 15
@@ -199,6 +209,35 @@ def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, 
             
     return np.array(obstacle_array)
 
+def add_unkown_obstacle_to_array(obstacleArray, env, referencePath, offset, unknown_amount=3):
+    """
+    For a given position array/list (x, y, z), radius and rgba color value place a 
+    non-coliding marker into the enviroment for visualization purposes, for example showing goal location
+
+    Input:  env, UrdfEnv class: Instance of the UrdfEnv class which holds the initialized enviroment in which to place the obstacles
+            obstacleArray, Numpy array: (n, 3) with (x, y, radius) coordinates of circles
+            referencePath, Numpy array: (n, 3) with (x, y, z) coordinates of the reference path of RRT
+            offset, float: offset to re-adjust for gymenvs enviroment
+            unknown_amount (optional), int: Amount of unknown obstacles to be added to enviroment
+
+    Output: obstacleArray, Numpy array: (n + unknown_amount, 3) with (x, y, radius) but with the unknown objects
+    """
+    path_len = len(referencePath)
+    start_index = min(100, path_len // 4)
+    end_index = max(path_len - 100, path_len // 2)
+
+    for i in range(unknown_amount):
+        unknown_index = int(np.random.uniform(start_index, end_index))
+
+        #Create object
+        x_unk, y_unk, _ = referencePath[unknown_index]
+        unknown_object = np.array([[x_unk , y_unk , 0.6]])
+        add_obstacleArray_to_env(env, unknown_object, offset)
+
+        #Add to obstacle array
+        obstacleArray = np.vstack((obstacleArray, unknown_object))    
+
+    return obstacleArray
 
 #Unused enviroment scenarios
 
