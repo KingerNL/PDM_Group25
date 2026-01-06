@@ -1,6 +1,7 @@
 __pycache__
 Data/MPPI_control_input.csv
 Data/path_plot.png
+Data/path_plot_walked.png
 Data/ref_path.csv
 create_enviroment/obstacle_enviroment.csv
 
