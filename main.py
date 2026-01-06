@@ -53,7 +53,7 @@ def run_prius_main(replay = False, n_steps=10000):
     start_position = [start_x, start_y, 0.05]
     goal_position = [25+offset, 25+offset, 0]
 
-    TestObjects = generate_random_obstacle_array(num_points=2, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
+    TestObjects = generate_random_obstacle_array(num_points=1, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
     
 
     #TestObjects = np.array([                 #Test array (x, y, radius)
@@ -74,7 +74,11 @@ def run_prius_main(replay = False, n_steps=10000):
         open("Data/ref_path.csv", "w").close()
 
         # Generate full path
+        start_time = time.perf_counter()
         best_path = rrt_main(all_vertices , 2.2)
+        rrt_time = time.perf_counter() - start_time
+        print(f"RRT planning time: {rrt_time:.6f} seconds")
+
         ref_path = np.array(best_path) + offset
 
         #Create object
@@ -150,6 +154,8 @@ def run_prius_main(replay = False, n_steps=10000):
     #variables
     action = np.zeros(2)  # [velocity, steering_angle]
     body_ids = []
+    loop_times = []
+    MPPI_times = []
 
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
@@ -167,7 +173,7 @@ def run_prius_main(replay = False, n_steps=10000):
         terminal_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
-        collision_safety_margin_rate = 1.5 * scaling, # safety margin for collision check
+        collision_safety_margin_rate = 0.4, # safety margin for collision check
     )
 
 ###-----------------------main simulation loop for creating control input or replaying----------------------###
@@ -177,6 +183,7 @@ def run_prius_main(replay = False, n_steps=10000):
 
         for _ in range(n_steps):
             #get the current state from the env
+            start_loop_time = time.perf_counter()
             pos = ob['robot_0']['joint_state']['position']
             x, y, yaw = pos
             forward_vel, side_vel = ob['robot_0']['joint_state']['forward_velocity']
@@ -187,6 +194,7 @@ def run_prius_main(replay = False, n_steps=10000):
             current_state = np.array([x, y, yaw, forward_vel])
             
             # calculate input force with MPPI
+            start_MPPI_time = time.perf_counter()
             try:
                 optimal_input, optimal_input_sequence, optimal_traj, sampled_traj_list = mppi.calc_control_input(
                     observed_x = current_state
@@ -194,6 +202,8 @@ def run_prius_main(replay = False, n_steps=10000):
             except IndexError as e:
                 print("[ERROR] IndexError detected. Terminate simulation. The vehicle has reached the end of the referenc path")
                 break
+            MPPI_time = time.perf_counter() - start_MPPI_time
+            MPPI_times.append(MPPI_time)
 
             #create state for the env
             action[0] = optimal_input[1]
@@ -222,6 +232,8 @@ def run_prius_main(replay = False, n_steps=10000):
             #print the state and send to the env
             print("action acc= ", np.round(action[0],3) , " and steering= " , np.round(action[1],3))
             ob, *_ = env.step(action)
+            loop_time = time.perf_counter() - start_loop_time
+            loop_times.append(loop_time)
     
     else:
         #if replay is true, it will load the file and play it in the env.
@@ -232,6 +244,12 @@ def run_prius_main(replay = False, n_steps=10000):
 
 
     #sleep before closing the env
+    print(f"RRT planning time: {rrt_time:.6f} seconds")
+    avg_loop_time = sum(loop_times) / len(loop_times)
+    print(f"Average loop time: {avg_loop_time:.6f} seconds")
+    avg_MPPI_time = sum(MPPI_times) / len(MPPI_times)
+    print(f"Average MPPI time: {avg_MPPI_time:.6f} seconds")
+
     time.sleep(5)
     print("close")
     env.close()
