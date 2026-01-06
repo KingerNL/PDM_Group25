@@ -66,6 +66,7 @@ def run_prius_main(replay = False, n_steps=10000):
     
     
     _ , all_vertices = add_obstacleArray_to_env(env, TestObjects, offset)
+    
 
 ###---------------------------------------------RRT with dublins path-------------------------------------###
     if replay == False:
