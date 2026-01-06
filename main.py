@@ -19,7 +19,7 @@ def run_prius_main(replay = False, n_steps=10000):
     wheel_radius = 0.31265
     wheel_base = 0.494
     max_steer_abs = 0.8
-    max_accel_abs = 50.0
+    max_accel_abs = 2.5
     samples_per_dt = 20
     horizon_step_T = 25
     ref_vel = 2.5
@@ -84,7 +84,7 @@ def run_prius_main(replay = False, n_steps=10000):
         #Create object
         mid_idx = len(ref_path) // 2
         x_mid, y_mid, _ = ref_path[mid_idx]
-        extra_object = np.array([[x_mid , y_mid , 1]])
+        extra_object = np.array([[x_mid , y_mid , 0.5]])
         add_obstacleArray_to_env(env, extra_object, offset)
 
         #add to objects
@@ -113,7 +113,7 @@ def run_prius_main(replay = False, n_steps=10000):
         ax.set_ylim(-15, 15)
 
         # Plot path
-        ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path')
+        ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path', zorder=1)
         # Add black circles
         for i in range(len(TestObjects)):
             circle = plt.Circle((TestObjects[i, 0], TestObjects[i, 1]), TestObjects[i, 2], color='black', fill=True)
@@ -125,6 +125,7 @@ def run_prius_main(replay = False, n_steps=10000):
         ax.set_ylabel("y coordinate")
         ax.grid(True)
         ax.set_aspect('equal', 'box')
+        ax.legend()
 
         # Step 4: Save the plot to a file instead of showing it
         plt.savefig("Data/path_plot.png", dpi=300)  # saves as PNG with 300 dpi
@@ -156,6 +157,7 @@ def run_prius_main(replay = False, n_steps=10000):
     body_ids = []
     loop_times = []
     MPPI_times = []
+    walked_path = []
 
     mppi = MPPIControllerForPathTracking(
         delta_t = dt, # [s]
@@ -169,8 +171,8 @@ def run_prius_main(replay = False, n_steps=10000):
         param_lambda = 100.0,
         param_alpha = 0.98,
         sigma = np.array([[0.25, 0.0], [0.0, 2.0]]),
-        stage_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
-        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 10.0]), # weight for [x, y, yaw, v]
+        stage_cost_weight = np.array([50.0, 50.0, 5.0, 11.0]), # weight for [x, y, yaw, v]
+        terminal_cost_weight = np.array([50.0, 50.0, 5.0, 11.0]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
         obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 0.4, # safety margin for collision check
@@ -189,6 +191,10 @@ def run_prius_main(replay = False, n_steps=10000):
             forward_vel, side_vel = ob['robot_0']['joint_state']['forward_velocity']
             # print(ob['robot_0']['joint_state']['forward_velocity'])
             steering = ob['robot_0']['joint_state']['steering'][0]
+
+
+            walked_path.append([x , y])
+            add_visual_marker([x ,y , 0.02], radius=0.1, rgba=(1.0, 0, 0, 0.7))
 
             # State vector for MPPI
             current_state = np.array([x, y, yaw, forward_vel])
@@ -216,7 +222,7 @@ def run_prius_main(replay = False, n_steps=10000):
                 remove_visual_marker(i)
             body_ids.clear()
 
-            for point in rounded_traj[10::13]:
+            for point in rounded_traj[20::10]:
                 body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.1, rgba=(0, 0, 0, 0.5))
                 body_ids.append(body_id)
 
@@ -234,6 +240,22 @@ def run_prius_main(replay = False, n_steps=10000):
             ob, *_ = env.step(action)
             loop_time = time.perf_counter() - start_loop_time
             loop_times.append(loop_time)
+        
+
+        ## create path for saved foto
+        walked_path = np.array(walked_path)
+        x_walked = walked_path[:, 0]  # first column
+        y_walked = walked_path[:, 1]  # second column
+        ax.plot(x_walked, y_walked, marker='o', linestyle='-', color='r', label='Path_walked')
+        plt.savefig("Data/path_plot_walked.png", dpi=300)  # saves as PNG with 300 dpi
+        ax.legend()
+        print("Plot saved as 'path_plot_walked.png'")
+
+        print(f"RRT planning time: {rrt_time:.6f} seconds")
+        avg_loop_time = sum(loop_times) / len(loop_times)
+        print(f"Average loop time: {avg_loop_time:.6f} seconds")
+        avg_MPPI_time = sum(MPPI_times) / len(MPPI_times)
+        print(f"Average MPPI time: {avg_MPPI_time:.6f} seconds")
     
     else:
         #if replay is true, it will load the file and play it in the env.
@@ -244,12 +266,6 @@ def run_prius_main(replay = False, n_steps=10000):
 
 
     #sleep before closing the env
-    print(f"RRT planning time: {rrt_time:.6f} seconds")
-    avg_loop_time = sum(loop_times) / len(loop_times)
-    print(f"Average loop time: {avg_loop_time:.6f} seconds")
-    avg_MPPI_time = sum(MPPI_times) / len(MPPI_times)
-    print(f"Average MPPI time: {avg_MPPI_time:.6f} seconds")
-
     time.sleep(5)
     print("close")
     env.close()
