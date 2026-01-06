@@ -8,10 +8,18 @@ from urdfenvs.urdf_common.bicycle_model import BicycleModel
 
 from source_files.MPPI import MPPIControllerForPathTracking
 
-from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker , remove_visual_marker, generate_random_obstacle_array #Custom script that has several scenarios containing objects to place in the enviroment
+from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_marker , remove_visual_marker, generate_random_obstacle_array, add_unkown_obstacle_to_array #Custom script that has several scenarios containing objects to place in the enviroment
 
 from source_files.rrt_dubin_felienc import rrt_main
 
+#Scenario Variables
+select_scenario = 4             #Select which scenario to run
+                                #Scenario 1: Simple scenario with a couple obstacles
+                                #Scenario 2: 
+                                #Scenario 3:
+
+min_dist = 1.0                    #Minimum distance to keep between generated obstacles
+max_radius = 3.0                #Maximum radius of obstacles to be generated
 
 def run_prius_main(replay = False, n_steps=10000):
     dt = 0.05
@@ -53,23 +61,24 @@ def run_prius_main(replay = False, n_steps=10000):
     start_position = [start_x, start_y, 0.05]
     goal_position = [25+offset, 25+offset, 0]
 
-    TestObjects = generate_random_obstacle_array(num_points=1, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
+    #obstacleArray = generate_random_obstacle_array(num_points=1, min_dist=1.5, max_radius=3.0, robot_pos=start_position[:2], goal_position=goal_position[:2])
     
-
-    #TestObjects = np.array([                 #Test array (x, y, radius)
-    #                [0.0, 0.0, 4.0],
-    #                [0.0, 12.5, 2.5],
-    #                [0.0, -12.5, 2.5],
-    #                [-12.5, 0.0, 2.5],
-    #                [12.5, 0.0, 2.5]
-    #                ])
-    
-    
-    _ , all_vertices = add_obstacleArray_to_env(env, TestObjects, offset)
-
-
+    # Scenario 1: Simple, 4 Obstacles
+    if select_scenario == 1:
+        obstacleArray = generate_random_obstacle_array(num_points=4, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=17)
+    # Scenario 2: More complex, 16 Obstacles
+    elif select_scenario == 2:
+        obstacleArray = generate_random_obstacle_array(num_points=16, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=9)
+    # Scenario 3: Straight line with 1 unknown obstacle
+    elif select_scenario == 3:
+        obstacleArray = generate_random_obstacle_array(num_points=1, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=2)
+    # Scenario 4: 12 obstacles with 2 unknown obstacles
+    elif select_scenario == 4:
+        obstacleArray = generate_random_obstacle_array(num_points=12, min_dist=min_dist, max_radius=max_radius, robot_pos=start_position[:2], goal_position=goal_position[:2], seed_id=13)
 ###---------------------------------------------RRT with dublins path-------------------------------------###
     if replay == False:
+        _ , all_vertices = add_obstacleArray_to_env(env, obstacleArray, offset)
+
         # Clear previous CSV
         open("Data/ref_path.csv", "w").close()
 
@@ -78,18 +87,15 @@ def run_prius_main(replay = False, n_steps=10000):
         best_path = rrt_main(all_vertices , 2.2)
         rrt_time = time.perf_counter() - start_time
         print(f"RRT planning time: {rrt_time:.6f} seconds")
-
         ref_path = np.array(best_path) + offset
 
-        #Create object
-        mid_idx = len(ref_path) // 2
-        x_mid, y_mid, _ = ref_path[mid_idx]
-        extra_object = np.array([[x_mid , y_mid , 1.0]])
-        add_obstacleArray_to_env(env, extra_object, offset)
+        #Create unknown obstacles for scenario 3, after generating RRT path
+        if select_scenario == 3:
+            obstacleArray = add_unkown_obstacle_to_array(obstacleArray, env, ref_path, offset, unknown_amount=1)
+        elif select_scenario == 4:
+            obstacleArray = add_unkown_obstacle_to_array(obstacleArray, env, ref_path, offset, unknown_amount=2)
+        np.savetxt("Data/obstacles_used.csv", obstacleArray, delimiter=",")
 
-        #add to objects
-        TestObjects = np.vstack((TestObjects, extra_object))
-        
         step = 4  # downsample factor
         downsampled = ref_path[::step]
 
@@ -115,8 +121,8 @@ def run_prius_main(replay = False, n_steps=10000):
         # Plot path
         ax.plot(x, y, marker='o', linestyle='-', color='b', label='Path')
         # Add black circles
-        for i in range(len(TestObjects)):
-            circle = plt.Circle((TestObjects[i, 0], TestObjects[i, 1]), TestObjects[i, 2], color='black', fill=True)
+        for i in range(len(obstacleArray)):
+            circle = plt.Circle((obstacleArray[i, 0], obstacleArray[i, 1]), obstacleArray[i, 2], color='black', fill=True)
             ax.add_patch(circle)
 
         # Labels, grid, and aspect ratio
@@ -129,9 +135,11 @@ def run_prius_main(replay = False, n_steps=10000):
         # Step 4: Save the plot to a file instead of showing it
         plt.savefig("Data/path_plot.png", dpi=300)  # saves as PNG with 300 dpi
         print("Plot saved as 'path_plot.png'")
-    else:
+    else:   #Play replay
         ref_path = np.loadtxt("Data/ref_path_succes.csv", delimiter=",")
 
+        obstacleArray = np.loadtxt("Data/obstacles_used.csv", delimiter=",")
+        add_obstacleArray_to_env(env, obstacleArray, offset)
 
     # Extract x, y, yaw for visualization
     x = ref_path[:, 0]
@@ -172,7 +180,7 @@ def run_prius_main(replay = False, n_steps=10000):
         stage_cost_weight = np.array([50.0, 50.0, 5.0, 12.5]), # weight for [x, y, yaw, v]
         terminal_cost_weight = np.array([50.0, 50.0, 5.0, 12.5]), # weight for [x, y, yaw, v]
         visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
-        obstacle_circles = TestObjects, # [obs_x, obs_y, obs_radius]
+        obstacle_circles = obstacleArray, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 0.4, # safety margin for collision check
     )
 
