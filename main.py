@@ -13,7 +13,7 @@ from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_
 from source_files.rrt_dubin_felienc import rrt_main
 
 #Scenario Variables
-select_scenario = 4             #Select which scenario to run
+select_scenario = 1             #Select which scenario to run
                                 # Scenario 1: Simple, 4 Obstacles
                                 # Scenario 2: More complex, 16 Obstacles
                                 # Scenario 3: Straight line with 1 unknown obstacle
@@ -182,7 +182,7 @@ def run_prius_main(replay = False, n_steps=10000):
         sigma = np.array([[0.25, 0.0], [0.0, 2.0]]),
         stage_cost_weight = np.array([50.0, 50.0, 5.0, 12.5]), # weight for [x, y, yaw, v]
         terminal_cost_weight = np.array([50.0, 50.0, 5.0, 12.5]), # weight for [x, y, yaw, v]
-        visualze_sampled_trajs = False, # if True, sampled trajectories are visualized
+        visualze_sampled_trajs = True, # if True, sampled trajectories are visualized
         obstacle_circles = obstacleArray, # [obs_x, obs_y, obs_radius]
         collision_safety_margin_rate = 0.4, # safety margin for collision check
     )
@@ -225,18 +225,23 @@ def run_prius_main(replay = False, n_steps=10000):
             action[1] = optimal_input[0]
 
             rounded_traj = np.round(optimal_traj, 2)
-            last_point = rounded_traj[-1]
+            rounded_sampled_traj = np.round(sampled_traj_list[:10], 2)
             
             for i in body_ids:
                 remove_visual_marker(i)
             body_ids.clear()
 
-            for point in rounded_traj[20::10]:
-                body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.1, rgba=(0, 0, 0, 0.5))
+            for traj in rounded_sampled_traj:
+                for point in traj[7::3]:
+                    body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.05, rgba=(0.2, 0.2, 0.2, 0.5))
+                    body_ids.append(body_id)
+
+            for point in rounded_traj[7::3]:
+                body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.1, rgba=(1.0, 0, 0, 0.7))
                 body_ids.append(body_id)
 
-            body_id = add_visual_marker([last_point[0], last_point[1], 0.02], radius=0.1, rgba=(1.0, 0, 0, 0.7))
-            body_ids.append(body_id)
+            
+
 
 
             #Put the state that is calcultated for the mppi into a csv file
