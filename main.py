@@ -13,7 +13,7 @@ from source_files.create_enviroment import add_obstacleArray_to_env, add_visual_
 from source_files.rrt_dubin_felienc import rrt_main
 
 #Scenario Variables
-select_scenario = 1             #Select which scenario to run
+select_scenario = 4             #Select which scenario to run
                                 # Scenario 1: Simple, 4 Obstacles
                                 # Scenario 2: More complex, 16 Obstacles
                                 # Scenario 3: Straight line with 1 unknown obstacle
@@ -109,7 +109,7 @@ def run_prius_main(replay = False, n_steps=10000):
         # Add velocity column to downsampled path
         vel_column = np.full((downsampled.shape[0], 1), ref_vel)  # e.g., ref_vel = 5
         ref_path = np.hstack((downsampled, vel_column))
-
+    
         np.savetxt("Data/ref_path.csv", ref_path, delimiter=",")
     
         x = ref_path[:, 0]  # first column
@@ -231,12 +231,15 @@ def run_prius_main(replay = False, n_steps=10000):
                 remove_visual_marker(i)
             body_ids.clear()
 
-            for traj in rounded_sampled_traj:
-                for point in traj[7::3]:
-                    body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.05, rgba=(0.2, 0.2, 0.2, 0.5))
-                    body_ids.append(body_id)
 
-            for point in rounded_traj[7::3]:
+            #Show MMPI itterative points
+            #for traj in rounded_sampled_traj:
+            #    for point in traj[7::3]:
+            #        body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.05, rgba=(0.2, 0.2, 0.2, 0.5))
+            #        body_ids.append(body_id)
+
+            #Show last MPPI points
+            for point in rounded_traj[15::9]:
                 body_id = add_visual_marker([point[0], point[1], 0.02], radius=0.1, rgba=(1.0, 0, 0, 0.7))
                 body_ids.append(body_id)
 

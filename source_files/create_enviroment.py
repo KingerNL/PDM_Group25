@@ -206,7 +206,7 @@ def generate_random_obstacle_array(num_points, min_dist, max_radius, robot_pos, 
         tries += 1
         if tries == num_points * 10:
             break
-            
+    #np.random.seed() #Randomize seed RRT generation, while keeping same obstacle placement
     return np.array(obstacle_array)
 
 def add_unkown_obstacle_to_array(obstacleArray, env, referencePath, offset, unknown_amount=1):
